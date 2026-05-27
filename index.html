@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Rustic Trail: Broken Compass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;overflow:hidden}
+body{font-family:'Inter',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#0a0f1c;color:#e6edf7;-webkit-font-smoothing:antialiased}
+#app{position:relative;height:100%;width:100%}
+#topbar{position:absolute;top:0;left:0;right:0;z-index:600;display:flex;align-items:center;justify-content:space-between;padding:14px 22px;gap:14px;background:linear-gradient(to bottom,rgba(10,15,28,.92),rgba(10,15,28,.55) 70%,rgba(10,15,28,0));pointer-events:none}
+#topbar>*{pointer-events:auto}
+.brand{font-weight:900;font-size:22px;letter-spacing:-.02em;color:#fff;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:#22d3a3;box-shadow:0 0 12px #22d3a3}
+.brand small{font-size:11px;font-weight:600;color:#22d3a3;background:rgba(34,211,163,.12);padding:2px 8px;border-radius:999px;letter-spacing:.08em;text-transform:uppercase}
+.meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.chip{background:rgba(19,28,46,.85);border:1px solid rgba(255,255,255,.06);padding:8px 14px;border-radius:10px;font-size:13px;font-weight:600;color:#cbd5e1;backdrop-filter:blur(8px)}
+.chip strong{color:#fff;font-weight:800}
+.modes{display:flex;background:rgba(13,20,36,.85);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:3px;backdrop-filter:blur(8px)}
+.mode-btn{appearance:none;border:none;background:transparent;color:#94a3b8;font-family:inherit;font-weight:700;font-size:12px;padding:7px 12px;border-radius:7px;cursor:pointer;letter-spacing:-.01em;transition:background .15s,color .15s}
+.mode-btn.active{background:rgba(34,211,163,.18);color:#22d3a3}
+.mode-btn:hover:not(.active){color:#e6edf7}
+.prompt{position:absolute;top:74px;left:50%;transform:translateX(-50%);z-index:500;background:rgba(13,20,36,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px 22px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.45);backdrop-filter:blur(8px);min-width:280px;max-width:92vw}
+.prompt .label{font-size:10px;font-weight:700;letter-spacing:.18em;color:#22d3a3;margin-bottom:4px}
+.prompt .target{font-size:22px;font-weight:800;letter-spacing:-.01em;color:#fff;line-height:1.15}
+.prompt .hint{font-size:12px;color:#94a3b8;margin-top:4px}
+#map{position:absolute;inset:0;width:100%;height:100%;background:#0a0f1c}
+#map-loading{position:absolute;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;background:#0a0f1c;color:#94a3b8;font-weight:600;font-size:14px;text-align:center;padding:20px;pointer-events:none;transition:opacity .4s ease}
+#map-loading.hide{opacity:0;pointer-events:none;visibility:hidden}
+#map-loading .err{color:#ef4444;font-weight:700}
+#pano-wrap{position:absolute;inset:0;display:none;background:#000}
+#pano-wrap.show{display:block}
+#pano-frame{width:100%;height:100%;border:0;display:block}
+#footer{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:600;display:flex;gap:10px;pointer-events:none}
+#footer>*{pointer-events:auto}
+.btn{appearance:none;border:none;font-family:inherit;font-weight:700;font-size:14px;padding:14px 24px;border-radius:12px;cursor:pointer;transition:transform .12s,background .15s,box-shadow .2s,opacity .2s;letter-spacing:-.01em;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(180deg,#22d3a3,#14b285);color:#032318;box-shadow:0 8px 24px rgba(34,211,163,.28)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-primary:disabled{background:rgba(34,211,163,.18);color:rgba(255,255,255,.5);cursor:not-allowed;box-shadow:none;transform:none}
+.btn-secondary{background:rgba(255,255,255,.08);color:#e6edf7;border:1px solid rgba(255,255,255,.1)}
+.btn-secondary:hover{background:rgba(255,255,255,.14)}
+.btn-wa{background:#25D366;color:#053b1d}
+.btn-wa:hover{background:#1ebe57;transform:translateY(-1px)}
+#result{position:absolute;inset:0;z-index:700;display:none;align-items:flex-end;justify-content:center;background:linear-gradient(to top,rgba(10,15,28,.7),rgba(10,15,28,0) 60%);pointer-events:none}
+#result.show{display:flex}
+.result-card{pointer-events:auto;background:rgba(13,20,36,.96);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px 26px;min-width:340px;max-width:92vw;margin-bottom:22px;box-shadow:0 20px 60px rgba(0,0,0,.6);backdrop-filter:blur(10px);text-align:center}
+.result-card .title{font-size:13px;color:#94a3b8;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+.result-card .distance{font-size:32px;font-weight:900;color:#fff;letter-spacing:-.02em}
+.result-card .distance small{font-size:16px;color:#94a3b8;font-weight:700;margin-left:4px}
+.result-card .points{margin-top:6px;font-size:18px;font-weight:800;color:#22d3a3}
+.result-card .actions{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+#final{position:absolute;inset:0;z-index:800;display:none;align-items:center;justify-content:center;background:rgba(10,15,28,.92);backdrop-filter:blur(10px)}
+#final.show{display:flex}
+.final-card{background:linear-gradient(180deg,#131c2e,#0d1426);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:36px 40px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.7);max-width:460px;width:92vw}
+.final-card h1{font-size:14px;font-weight:700;letter-spacing:.2em;color:#22d3a3;margin-bottom:8px}
+.final-card .score-big{font-size:64px;font-weight:900;letter-spacing:-.03em;color:#fff;line-height:1;margin:8px 0 4px}
+.final-card .out-of{color:#64748b;font-size:16px;font-weight:600}
+.final-card .grade{margin:14px 0 22px;font-size:18px;font-weight:700;color:#e6edf7}
+.final-card .actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+#pano-overlay{position:absolute;top:0;left:0;right:0;z-index:750;padding:16px;display:none;background:linear-gradient(to bottom,rgba(0,0,0,.6),transparent);align-items:center;justify-content:space-between;gap:10px;pointer-events:none}
+#pano-overlay.show{display:flex}
+#pano-overlay>*{pointer-events:auto}
+#pano-overlay .here{background:rgba(13,20,36,.85);border:1px solid rgba(255,255,255,.1);padding:8px 14px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;backdrop-filter:blur(8px)}
+#pano-overlay .here .em{color:#22d3a3}
+#pano-overlay .right{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.leaflet-container{background:#0a0f1c;outline:none}
+.leaflet-control-attribution{background:rgba(13,20,36,.7)!important;color:#94a3b8!important;font-size:10px!important}
+.leaflet-control-attribution a{color:#22d3a3!important}
+.leaflet-control-zoom a{background:rgba(13,20,36,.9)!important;color:#e6edf7!important;border:1px solid rgba(255,255,255,.08)!important}
+.leaflet-control-zoom a:hover{background:rgba(30,41,59,.95)!important}
+.pin{filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+@media (max-width:720px){
+  #topbar{padding:10px 12px;flex-wrap:wrap}
+  .brand{font-size:18px}
+  .brand small{display:none}
+  .chip{padding:6px 10px;font-size:12px}
+  .prompt{top:110px}
+  .prompt .target{font-size:18px}
+  .btn{padding:12px 18px;font-size:13px}
+  .result-card{min-width:0;width:92vw}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header id="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      Rustic Trail<small>Broken Compass</small>
+    </div>
+    <div class="modes" role="tablist" aria-label="Game mode">
+      <button class="mode-btn" data-mode="places">Cities</button>
+      <button class="mode-btn" data-mode="landmarks">Landmarks</button>
+    </div>
+    <div class="meta">
+      <div class="chip">Daily <strong id="date-label">—</strong></div>
+      <div class="chip">Round <strong id="round-num">1</strong>/<strong id="round-total">5</strong></div>
+      <div class="chip">Score <strong id="score">0</strong></div>
+    </div>
+  </header>
+
+  <div class="prompt">
+    <div class="label" id="prompt-label">FIND THIS CITY</div>
+    <div class="target" id="target">—</div>
+    <div class="hint" id="hint">Tap the map where you think it is</div>
+  </div>
+
+  <div id="map"></div>
+  <div id="map-loading">Loading map…</div>
+
+  <div id="pano-wrap">
+    <iframe id="pano-frame" allowfullscreen referrerpolicy="no-referrer-when-downgrade" loading="lazy"></iframe>
+  </div>
+
+  <div id="pano-overlay">
+    <div class="here">You are at <span class="em" id="pano-name">—</span></div>
+    <div class="right">
+      <a id="open-maps" class="btn btn-secondary" target="_blank" rel="noopener">Open in Google Maps ↗</a>
+      <button class="btn btn-secondary" id="exit-pano">← Back</button>
+    </div>
+  </div>
+
+  <div id="footer">
+    <button id="guess-btn" class="btn btn-primary" disabled>Place a pin to guess</button>
+  </div>
+
+  <div id="result">
+    <div class="result-card">
+      <div class="title">Your guess was</div>
+      <div class="distance"><span id="dist-val">—</span><small id="dist-unit"> km away</small></div>
+      <div class="points">+<span id="points">0</span> points</div>
+      <div class="actions">
+        <button class="btn btn-secondary" id="streetview-btn">Zoom into Street View →</button>
+        <button class="btn btn-primary" id="next-btn">Next round</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="final">
+    <div class="final-card">
+      <h1>GAME OVER</h1>
+      <div class="score-big" id="final-score">0</div>
+      <div class="out-of">out of <span id="final-max">25000</span></div>
+      <div class="grade" id="final-grade">—</div>
+      <div class="actions">
+        <a class="btn btn-wa" id="share-wa" target="_blank" rel="noopener">Share on WhatsApp</a>
+        <button class="btn btn-secondary" id="share-btn">Share / Copy score</button>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="play-again">Play again</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+// --- Loading overlay helpers (always safe to call) ---
+var ML = document.getElementById('map-loading');
+function setLoading(text, isErr){
+  if(!ML) return;
+  ML.innerHTML = isErr
+    ? '<div><div class="err">' + text + '</div></div>'
+    : text;
+}
+function hideLoading(){ if(ML) ML.classList.add('hide'); }
+
+// Catch any error and surface it instead of failing silently
+window.addEventListener('error', function(e){
+  if(ML && !ML.classList.contains('hide')){
+    setLoading('Something went wrong: ' + (e.message || 'unknown error'), true);
+  }
+});
+
+// If Leaflet didn't load, stop here with a clear message
+if (typeof L === 'undefined') {
+  setLoading('Couldn’t load the map library. Check your internet connection and refresh.', true);
+  return;
+}
+
+// Multiple safety nets so the loading overlay never sticks
+setTimeout(hideLoading, 3500);
+setTimeout(hideLoading, 8000);
+
+// --- Data ---
+var LANDMARKS = [
+  {name:"Eiffel Tower",lat:48.8584,lng:2.2945},
+  {name:"Sydney Opera House",lat:-33.8568,lng:151.2153},
+  {name:"Statue of Liberty",lat:40.6892,lng:-74.0445},
+  {name:"Colosseum",lat:41.8902,lng:12.4922},
+  {name:"Taj Mahal",lat:27.1751,lng:78.0421},
+  {name:"Christ the Redeemer",lat:-22.9519,lng:-43.2105},
+  {name:"Big Ben",lat:51.5007,lng:-0.1246},
+  {name:"Brandenburg Gate",lat:52.5163,lng:13.3777},
+  {name:"Times Square",lat:40.7580,lng:-73.9855},
+  {name:"Tokyo Tower",lat:35.6586,lng:139.7454},
+  {name:"Petronas Towers",lat:3.1579,lng:101.7117},
+  {name:"Burj Khalifa",lat:25.1972,lng:55.2744},
+  {name:"Niagara Falls",lat:43.0828,lng:-79.0742},
+  {name:"Golden Gate Bridge",lat:37.8199,lng:-122.4783},
+  {name:"Sagrada Familia",lat:41.4036,lng:2.1744},
+  {name:"CN Tower",lat:43.6426,lng:-79.3871},
+  {name:"Mount Rushmore",lat:43.8791,lng:-103.4591},
+  {name:"Acropolis of Athens",lat:37.9715,lng:23.7257},
+  {name:"St. Basil's Cathedral",lat:55.7525,lng:37.6231},
+  {name:"Forbidden City",lat:39.9163,lng:116.3972},
+  {name:"Marina Bay Sands",lat:1.2834,lng:103.8607},
+  {name:"Hollywood Sign",lat:34.1341,lng:-118.3215},
+  {name:"Trevi Fountain",lat:41.9009,lng:12.4833},
+  {name:"Empire State Building",lat:40.7484,lng:-73.9857},
+  {name:"Arc de Triomphe",lat:48.8738,lng:2.2950}
+];
+var CITIES = [
+  {name:"London, England",lat:51.5074,lng:-0.1278},
+  {name:"Tokyo, Japan",lat:35.6762,lng:139.6503},
+  {name:"New York City, USA",lat:40.7128,lng:-74.0060},
+  {name:"Paris, France",lat:48.8566,lng:2.3522},
+  {name:"Sydney, Australia",lat:-33.8688,lng:151.2093},
+  {name:"Cairo, Egypt",lat:30.0444,lng:31.2357},
+  {name:"Mumbai, India",lat:19.0760,lng:72.8777},
+  {name:"Rio de Janeiro, Brazil",lat:-22.9068,lng:-43.1729},
+  {name:"Cape Town, South Africa",lat:-33.9249,lng:18.4241},
+  {name:"Mexico City, Mexico",lat:19.4326,lng:-99.1332},
+  {name:"Moscow, Russia",lat:55.7558,lng:37.6173},
+  {name:"Bangkok, Thailand",lat:13.7563,lng:100.5018},
+  {name:"Istanbul, Turkey",lat:41.0082,lng:28.9784},
+  {name:"Buenos Aires, Argentina",lat:-34.6037,lng:-58.3816},
+  {name:"Toronto, Canada",lat:43.6532,lng:-79.3832},
+  {name:"Berlin, Germany",lat:52.5200,lng:13.4050},
+  {name:"Rome, Italy",lat:41.9028,lng:12.4964},
+  {name:"Shanghai, China",lat:31.2304,lng:121.4737},
+  {name:"Singapore",lat:1.3521,lng:103.8198},
+  {name:"Dubai, UAE",lat:25.2048,lng:55.2708},
+  {name:"Lagos, Nigeria",lat:6.5244,lng:3.3792},
+  {name:"Stockholm, Sweden",lat:59.3293,lng:18.0686},
+  {name:"Seoul, South Korea",lat:37.5665,lng:126.9780},
+  {name:"Reykjavik, Iceland",lat:64.1466,lng:-21.9426},
+  {name:"Honolulu, Hawaii, USA",lat:21.3099,lng:-157.8581}
+];
+var MODES = {
+  landmarks:{label:'Landmarks',pool:LANDMARKS,promptLabel:'FIND THIS LANDMARK'},
+  places:   {label:'Cities',   pool:CITIES,   promptLabel:'FIND THIS CITY'}
+};
+
+var TOTAL_ROUNDS = 5;
+var state = {
+  round:0, score:0, pool:[], current:null,
+  guessMarker:null, truthMarker:null, resultLine:null,
+  map:null, flying:false,
+  mode: localStorage.getItem('rt_mode') || 'places'  // default: Cities
+};
+
+// --- Map init ---
+var map = L.map('map', {
+  center:[20,0], zoom:2, minZoom:2, maxZoom:19,
+  worldCopyJump:true, zoomControl:true
+});
+state.map = map;
+
+var tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains:'abcd', maxZoom:19
+}).addTo(map);
+tiles.on('load', hideLoading);
+tiles.on('tileerror', function(){
+  if(ML && !ML.classList.contains('hide')){
+    setLoading('Map tiles failed to load — check your connection.', true);
+  }
+});
+
+map.on('click', function(e){
+  if(state.flying) return;
+  placeGuess(e.latlng);
+});
+
+// --- Pin icons ---
+function pinIcon(color){
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 34 44">'+
+    '<ellipse cx="17" cy="40" rx="6" ry="2" fill="#000" opacity=".35"/>'+
+    '<path d="M17 2c7.18 0 13 5.82 13 13 0 9.5-13 25-13 25S4 24.5 4 15C4 7.82 9.82 2 17 2z" fill="'+color+'" stroke="#0a0f1c" stroke-width="2"/>'+
+    '<circle cx="17" cy="15" r="5" fill="#0a0f1c"/></svg>';
+  return L.divIcon({className:'pin', html:svg, iconSize:[30,40], iconAnchor:[15,38]});
+}
+var GUESS_ICON = pinIcon('#22d3a3');
+var TRUTH_ICON = pinIcon('#ef4444');
+
+// --- Game flow ---
+function dailySeed(){
+  var d = new Date();
+  return d.getUTCFullYear()*10000 + (d.getUTCMonth()+1)*100 + d.getUTCDate();
+}
+function todayLabel(){
+  var d = new Date();
+  return d.toLocaleDateString(undefined, {month:'short', day:'numeric'});
+}
+function mulberry32(seed){
+  var s = seed >>> 0;
+  return function(){
+    s = (s + 0x6D2B79F5) >>> 0;
+    var t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function seededShuffle(arr, rand){
+  var a = arr.slice();
+  for(var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(rand() * (i + 1));
+    var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+function startGame(){
+  state.round = 0;
+  state.score = 0;
+  var mode = MODES[state.mode] || MODES.places;
+  var salt = (state.mode === 'places') ? 7919 : 0;
+  state.pool = seededShuffle(mode.pool, mulberry32(dailySeed() + salt)).slice(0, TOTAL_ROUNDS);
+  document.getElementById('score').textContent = '0';
+  document.getElementById('round-total').textContent = TOTAL_ROUNDS;
+  document.getElementById('date-label').textContent = todayLabel();
+  document.getElementById('prompt-label').textContent = mode.promptLabel;
+  var btns = document.querySelectorAll('.mode-btn');
+  for(var i=0;i<btns.length;i++){
+    btns[i].classList.toggle('active', btns[i].dataset.mode === state.mode);
+  }
+  document.getElementById('final').classList.remove('show');
+  nextRound();
+}
+
+function nextRound(){
+  clearOverlays();
+  document.getElementById('result').classList.remove('show');
+  state.current = state.pool[state.round];
+  state.round++;
+  document.getElementById('round-num').textContent = state.round;
+  document.getElementById('target').textContent = state.current.name;
+  document.getElementById('hint').textContent = 'Tap the map where you think it is';
+  var btn = document.getElementById('guess-btn');
+  btn.disabled = true;
+  btn.textContent = 'Place a pin to guess';
+  map.flyTo([20,0], 2, {duration: 0.8});
+}
+
+function placeGuess(latlng){
+  if(state.guessMarker){
+    state.guessMarker.setLatLng(latlng);
+  } else {
+    state.guessMarker = L.marker(latlng, {icon: GUESS_ICON, draggable: true}).addTo(map);
+  }
+  var btn = document.getElementById('guess-btn');
+  btn.disabled = false;
+  btn.textContent = 'Submit guess';
+}
+
+document.getElementById('guess-btn').addEventListener('click', submitGuess);
+
+function submitGuess(){
+  if(!state.guessMarker) return;
+  var guess = state.guessMarker.getLatLng();
+  var truth = L.latLng(state.current.lat, state.current.lng);
+  var distM = guess.distanceTo(truth);
+  var distKm = distM / 1000;
+  var points = scoreFromDistance(distKm);
+  state.score += points;
+  document.getElementById('score').textContent = state.score.toLocaleString();
+
+  state.truthMarker = L.marker(truth, {icon: TRUTH_ICON, title: state.current.name}).addTo(map);
+  state.resultLine = L.polyline([guess, truth], {
+    color:'#22d3a3', weight:3, opacity:0.9, dashArray:'6 8'
+  }).addTo(map);
+
+  var bounds = L.latLngBounds([guess, truth]).pad(0.25);
+  map.flyToBounds(bounds, {duration:1.0, paddingTopLeft:[40,140], paddingBottomRight:[40,200]});
+
+  var gbtn = document.getElementById('guess-btn');
+  gbtn.disabled = true;
+  gbtn.textContent = 'Locked in';
+
+  var distStr = distKm < 1 ? Math.round(distM) : Math.round(distKm).toLocaleString();
+  document.getElementById('dist-val').textContent = distStr;
+  document.getElementById('dist-unit').textContent = distKm < 1 ? ' m away' : ' km away';
+  document.getElementById('points').textContent = points.toLocaleString();
+  document.getElementById('result').classList.add('show');
+}
+
+function scoreFromDistance(km){
+  var pts = 5000 * Math.exp(-km / 2000);
+  return Math.max(0, Math.round(pts));
+}
+
+// --- Street View ---
+document.getElementById('streetview-btn').addEventListener('click', function(){
+  if(state.flying) return;
+  state.flying = true;
+  document.getElementById('result').classList.remove('show');
+  flyToAndWait([state.current.lat, state.current.lng], 18, 2.0).then(function(){
+    showStreetView(state.current);
+    state.flying = false;
+  });
+});
+
+function flyToAndWait(latlng, zoom, duration){
+  return new Promise(function(resolve){
+    function done(){ map.off('moveend', done); resolve(); }
+    map.on('moveend', done);
+    map.flyTo(latlng, zoom, {duration: duration});
+    setTimeout(function(){ map.off('moveend', done); resolve(); }, (duration + 0.5) * 1000);
+  });
+}
+
+function showStreetView(landmark){
+  var lat = landmark.lat, lng = landmark.lng, name = landmark.name;
+  var url = 'https://maps.google.com/maps?layer=c&cbll=' + lat + ',' + lng + '&cbp=11,0,0,0,0&output=svembed';
+  var fallback = 'https://www.google.com/maps/@' + lat + ',' + lng + ',3a,75y,0h,90t/data=!3m1!1e1';
+  document.getElementById('pano-frame').src = url;
+  document.getElementById('open-maps').href = fallback;
+  document.getElementById('pano-name').textContent = name;
+  document.getElementById('pano-wrap').classList.add('show');
+  document.getElementById('pano-overlay').classList.add('show');
+  document.getElementById('footer').style.display = 'none';
+  document.querySelector('.prompt').style.display = 'none';
+}
+
+document.getElementById('exit-pano').addEventListener('click', exitStreetView);
+
+function exitStreetView(){
+  document.getElementById('pano-frame').src = 'about:blank';
+  document.getElementById('pano-wrap').classList.remove('show');
+  document.getElementById('pano-overlay').classList.remove('show');
+  document.getElementById('footer').style.display = 'flex';
+  document.querySelector('.prompt').style.display = 'block';
+  document.getElementById('result').classList.add('show');
+  setTimeout(function(){ map.invalidateSize(); }, 50);
+}
+
+// --- Next round / final ---
+document.getElementById('next-btn').addEventListener('click', function(){
+  document.getElementById('pano-frame').src = 'about:blank';
+  document.getElementById('pano-wrap').classList.remove('show');
+  document.getElementById('pano-overlay').classList.remove('show');
+  document.getElementById('footer').style.display = 'flex';
+  document.querySelector('.prompt').style.display = 'block';
+  if(state.round >= TOTAL_ROUNDS){
+    showFinal();
+  } else {
+    nextRound();
+  }
+  setTimeout(function(){ map.invalidateSize(); }, 50);
+});
+
+function showFinal(){
+  var max = TOTAL_ROUNDS * 5000;
+  document.getElementById('final-score').textContent = state.score.toLocaleString();
+  document.getElementById('final-max').textContent = max.toLocaleString();
+  document.getElementById('final-grade').textContent = gradeFor(state.score / max);
+  document.getElementById('share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(shareText());
+  document.getElementById('final').classList.add('show');
+}
+
+function shareText(){
+  var max = TOTAL_ROUNDS * 5000;
+  var modeLabel = (MODES[state.mode] || MODES.places).label;
+  return '🗺️ Rustic Trail: Broken Compass\n' +
+         modeLabel + ' — ' + todayLabel() + '\n' +
+         state.score.toLocaleString() + ' / ' + max.toLocaleString() + ' — ' + gradeFor(state.score / max) + '\n\n' +
+         'Play: ' + location.href;
+}
+
+function gradeFor(pct){
+  if(pct >= 0.92) return "Globe Wizard";
+  if(pct >= 0.80) return "Master Navigator";
+  if(pct >= 0.65) return "Seasoned Explorer";
+  if(pct >= 0.45) return "Casual Traveler";
+  if(pct >= 0.25) return "Backpacker";
+  return "Lost in Translation";
+}
+
+// Share button (native share, fallback to clipboard)
+document.getElementById('share-btn').addEventListener('click', async function(){
+  var text = shareText();
+  var btn = this;
+  if(navigator.share){
+    try{
+      await navigator.share({title:'Rustic Trail: Broken Compass', text: text});
+      return;
+    } catch(e){ /* user cancelled, fall through to copy */ }
+  }
+  try{
+    await navigator.clipboard.writeText(text);
+    var old = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(function(){ btn.textContent = old; }, 1600);
+  } catch(e){
+    window.prompt('Copy your score:', text);
+  }
+});
+
+document.getElementById('play-again').addEventListener('click', startGame);
+
+// Mode toggle
+var modeBtns = document.querySelectorAll('.mode-btn');
+for(var i=0;i<modeBtns.length;i++){
+  modeBtns[i].addEventListener('click', function(){
+    var next = this.dataset.mode;
+    if(next === state.mode) return;
+    state.mode = next;
+    localStorage.setItem('rt_mode', next);
+    document.getElementById('pano-frame').src = 'about:blank';
+    document.getElementById('pano-wrap').classList.remove('show');
+    document.getElementById('pano-overlay').classList.remove('show');
+    document.getElementById('footer').style.display = 'flex';
+    document.querySelector('.prompt').style.display = 'block';
+    startGame();
+  });
+}
+
+// --- Helpers ---
+function clearOverlays(){
+  if(state.guessMarker){ map.removeLayer(state.guessMarker); state.guessMarker = null; }
+  if(state.truthMarker){ map.removeLayer(state.truthMarker); state.truthMarker = null; }
+  if(state.resultLine){  map.removeLayer(state.resultLine);  state.resultLine  = null; }
+}
+
+// Boot
+startGame();
+
+})();
+</script>
+</body>
+</html>

@@ -505,127 +505,248 @@ scene.add(snow);
 // --- Enemies (detailed with walking anim) ---
 var enemies=[];
 function makeEnemy(x,z){
-  var g=new THREE.Group();
-  // Boots
-  var bootL=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.16,0.3), matBoots);
-  bootL.position.set(-0.15,0.08,0.02);
-  g.add(bootL);
-  var bootR=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.16,0.3), matBoots);
-  bootR.position.set(0.15,0.08,0.02);
-  g.add(bootR);
-  // Leg pivot groups (for walking anim)
-  var legLg=new THREE.Group(); legLg.position.set(-0.15,0.5,0); g.add(legLg);
-  var legL=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.55,0.24), matPants);
-  legL.position.y=-0.28;
-  legLg.add(legL);
-  var legRg=new THREE.Group(); legRg.position.set(0.15,0.5,0); g.add(legRg);
-  var legR=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.55,0.24), matPants);
-  legR.position.y=-0.28;
-  legRg.add(legR);
-  // Torso (green greatcoat)
-  var torso=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.75,0.42), matCoat);
-  torso.position.y=1.15;
-  torso.castShadow=true;
-  g.add(torso);
-  // Coat flare (skirt)
-  var flare=new THREE.Mesh(new THREE.BoxGeometry(0.85,0.35,0.5), matCoatDark);
-  flare.position.y=0.78;
-  g.add(flare);
-  // Belt
-  var belt=new THREE.Mesh(new THREE.BoxGeometry(0.72,0.09,0.44), matBelt);
-  belt.position.y=0.98;
-  g.add(belt);
-  // Belt buckle
-  var buckle=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.02), new THREE.MeshLambertMaterial({color:0xb8a040}));
-  buckle.position.set(0,0.98,0.23);
-  g.add(buckle);
-  // Shoulders
-  var shL=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.14,0.24), matCoatDark);
-  shL.position.set(-0.45,1.48,0);
-  g.add(shL);
-  var shR=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.14,0.24), matCoatDark);
-  shR.position.set(0.45,1.48,0);
-  g.add(shR);
-  // Arm groups (for animation)
-  var armLg=new THREE.Group(); armLg.position.set(-0.45,1.42,0); g.add(armLg);
-  var armL=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.7,0.2), matCoat);
-  armL.position.y=-0.35;
-  armLg.add(armL);
-  // Hand L (skin)
-  var handL=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.15,0.16), matSkin);
-  handL.position.y=-0.72;
-  armLg.add(handL);
-  var armRg=new THREE.Group(); armRg.position.set(0.45,1.42,0); g.add(armRg);
-  var armR=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.7,0.2), matCoat);
-  armR.position.y=-0.35;
-  armRg.add(armR);
-  var handR=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.15,0.16), matSkin);
-  handR.position.y=-0.72;
-  armRg.add(handR);
-  // Neck
-  var neck=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.12,0.2), matSkin);
-  neck.position.y=1.6;
-  g.add(neck);
-  // Head
-  var head=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.4,0.36), matSkin);
-  head.position.y=1.85;
-  head.castShadow=true;
-  g.add(head);
-  // Eye/brow shadow (dark stripe)
-  var eyes=new THREE.Mesh(new THREE.PlaneGeometry(0.34,0.06), new THREE.MeshBasicMaterial({color:0x1a1210}));
-  eyes.position.set(0,1.9,0.181);
-  g.add(eyes);
-  // Ushanka body
-  var hat=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.24,0.44), matHat);
-  hat.position.y=2.15;
-  hat.castShadow=true;
-  g.add(hat);
-  // Ear flaps (down)
-  var earL=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.28,0.36), matHat);
-  earL.position.set(-0.24,2.02,0);
-  g.add(earL);
-  var earR=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.28,0.36), matHat);
-  earR.position.set(0.24,2.02,0);
-  g.add(earR);
-  // Hat brim front
-  var brim=new THREE.Mesh(new THREE.BoxGeometry(0.38,0.06,0.05), matHat);
-  brim.position.set(0,2.05,0.22);
-  g.add(brim);
-  // Red star with yellow center
-  var starBg=new THREE.Mesh(new THREE.PlaneGeometry(0.14,0.14), matStar);
-  starBg.position.set(0,2.19,0.223);
-  g.add(starBg);
-  var starCtr=new THREE.Mesh(new THREE.CircleGeometry(0.028,8), new THREE.MeshBasicMaterial({color:0xffd820}));
-  starCtr.position.set(0,2.19,0.224);
-  g.add(starCtr);
-  // Rifle held with both hands (Mosin-Nagant style)
-  var rifleGrp=new THREE.Group();
-  var stock=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.14,0.55), matWood);
-  stock.position.z=-0.15;
-  rifleGrp.add(stock);
-  var receiver=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.09,0.15), matMetal);
-  receiver.position.set(0,0.02,0.05);
-  rifleGrp.add(receiver);
-  var barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.75,6), matMetal);
-  barrel.rotation.x=Math.PI/2;
-  barrel.position.set(0,0.03,0.55);
-  rifleGrp.add(barrel);
-  var bayonet=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.02,0.3),new THREE.MeshBasicMaterial({color:0xd0d0d0}));
-  bayonet.position.set(0,0.03,1.05);
-  rifleGrp.add(bayonet);
-  rifleGrp.position.set(0.05,1.2,0.35);
-  rifleGrp.rotation.y=-0.15;
-  g.add(rifleGrp);
-  g.position.set(x,0,z);
-  scene.add(g);
-  return {
-    mesh:g, hp:100, alive:true,
-    lastShot:performance.now()+800+Math.random()*1600,
-    speed:1.1+Math.random()*0.6,
-    deathTime:0, walkPhase:Math.random()*Math.PI*2,
-    legLg:legLg, legRg:legRg, armLg:armLg, armRg:armRg,
-    moving:false
-  };
+var g=new THREE.Group();
+
+// --- Boots ---
+var bootL=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.11,0.18,10), matBoots);
+bootL.position.set(-0.13,0.09,0.02);
+g.add(bootL);
+var bootLtoe=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.1,0.22),matBoots);
+bootLtoe.position.set(-0.13,0.05,0.14);
+g.add(bootLtoe);
+var bootR=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.11,0.18,10), matBoots);
+bootR.position.set(0.13,0.09,0.02);
+g.add(bootR);
+var bootRtoe=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.1,0.22),matBoots);
+bootRtoe.position.set(0.13,0.05,0.14);
+g.add(bootRtoe);
+
+// --- Leg groups (pivot at hip for walking anim) ---
+var legLg=new THREE.Group(); legLg.position.set(-0.13,0.85,0); g.add(legLg);
+var legL=new THREE.Mesh(new THREE.CylinderGeometry(0.095,0.08,0.55,10), matPants);
+legL.position.y=-0.3;
+legLg.add(legL);
+var kneeL=new THREE.Mesh(new THREE.SphereGeometry(0.09,8,6), matPants);
+kneeL.position.y=-0.6;
+legLg.add(kneeL);
+
+var legRg=new THREE.Group(); legRg.position.set(0.13,0.85,0); g.add(legRg);
+var legR=new THREE.Mesh(new THREE.CylinderGeometry(0.095,0.08,0.55,10), matPants);
+legR.position.y=-0.3;
+legRg.add(legR);
+var kneeR=new THREE.Mesh(new THREE.SphereGeometry(0.09,8,6), matPants);
+kneeR.position.y=-0.6;
+legRg.add(kneeR);
+
+// --- Hip / coat skirt ---
+var hip=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.24,0.28,14), matCoatDark);
+hip.position.y=1.0;
+hip.castShadow=true;
+g.add(hip);
+
+// --- Torso (tapered cylinder, greatcoat) ---
+var torso=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.3,0.7,14), matCoat);
+torso.position.y=1.5;
+torso.castShadow=true;
+g.add(torso);
+
+// Coat buttons down the front
+for(var b=0;b<4;b++){
+var btn=new THREE.Mesh(new THREE.SphereGeometry(0.028,6,5), new THREE.MeshLambertMaterial({color:0xc8a848}));
+btn.position.set(0,1.72-b*0.18,0.32);
+g.add(btn);
+}
+
+// Collar / lapels
+var collar=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.24,0.13,12), matCoatDark);
+collar.position.y=1.87;
+g.add(collar);
+
+// --- Belt ---
+var belt=new THREE.Mesh(new THREE.CylinderGeometry(0.31,0.31,0.09,14), matBelt);
+belt.position.y=1.14;
+g.add(belt);
+var buckle=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.09,0.02), new THREE.MeshLambertMaterial({color:0xd8b040}));
+buckle.position.set(0,1.14,0.32);
+g.add(buckle);
+
+// --- Shoulders (spheres) ---
+var shL=new THREE.Mesh(new THREE.SphereGeometry(0.13,10,8), matCoat);
+shL.position.set(-0.36,1.75,0);
+shL.castShadow=true;
+g.add(shL);
+var shR=new THREE.Mesh(new THREE.SphereGeometry(0.13,10,8), matCoat);
+shR.position.set(0.36,1.75,0);
+shR.castShadow=true;
+g.add(shR);
+
+// --- Arm groups (pivot at shoulder for walking anim) ---
+var armLg=new THREE.Group(); armLg.position.set(-0.36,1.72,0); g.add(armLg);
+var armL=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.076,0.42,10), matCoat);
+armL.position.y=-0.22;
+armLg.add(armL);
+var elbowL=new THREE.Mesh(new THREE.SphereGeometry(0.078,8,6), matCoat);
+elbowL.position.y=-0.44;
+armLg.add(elbowL);
+var foreL=new THREE.Mesh(new THREE.CylinderGeometry(0.078,0.07,0.32,10), matCoat);
+foreL.position.y=-0.62;
+armLg.add(foreL);
+var handL=new THREE.Mesh(new THREE.SphereGeometry(0.09,8,6), matSkin);
+handL.position.y=-0.82;
+handL.scale.set(1,0.9,1.1);
+armLg.add(handL);
+
+var armRg=new THREE.Group(); armRg.position.set(0.36,1.72,0); g.add(armRg);
+var armR=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.076,0.42,10), matCoat);
+armR.position.y=-0.22;
+armRg.add(armR);
+var elbowR=new THREE.Mesh(new THREE.SphereGeometry(0.078,8,6), matCoat);
+elbowR.position.y=-0.44;
+armRg.add(elbowR);
+var foreR=new THREE.Mesh(new THREE.CylinderGeometry(0.078,0.07,0.32,10), matCoat);
+foreR.position.y=-0.62;
+armRg.add(foreR);
+var handR=new THREE.Mesh(new THREE.SphereGeometry(0.09,8,6), matSkin);
+handR.position.y=-0.82;
+handR.scale.set(1,0.9,1.1);
+armRg.add(handR);
+
+// --- Neck ---
+var neck=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.1,0.14,10), matSkin);
+neck.position.y=1.98;
+g.add(neck);
+
+// --- Head (sphere, slightly egg-shaped) ---
+var head=new THREE.Mesh(new THREE.SphereGeometry(0.19,16,12), matSkin);
+head.position.y=2.19;
+head.scale.set(1,1.15,1);
+head.castShadow=true;
+g.add(head);
+
+// --- Jaw / chin shadow ---
+var jaw=new THREE.Mesh(new THREE.SphereGeometry(0.15,10,8), matSkin);
+jaw.position.y=2.07;
+jaw.scale.set(1,0.7,1);
+g.add(jaw);
+
+// --- Ears ---
+var earLh=new THREE.Mesh(new THREE.SphereGeometry(0.045,8,6), matSkin);
+earLh.position.set(-0.19,2.17,-0.02);
+earLh.scale.set(0.5,1,0.9);
+g.add(earLh);
+var earRh=new THREE.Mesh(new THREE.SphereGeometry(0.045,8,6), matSkin);
+earRh.position.set(0.19,2.17,-0.02);
+earRh.scale.set(0.5,1,0.9);
+g.add(earRh);
+
+// --- Eyes (dark sockets + white + pupil) ---
+var eyeSockL=new THREE.Mesh(new THREE.SphereGeometry(0.038,8,6), new THREE.MeshLambertMaterial({color:0xd0a888}));
+eyeSockL.position.set(-0.065,2.23,0.155);
+g.add(eyeSockL);
+var eyeSockR=new THREE.Mesh(new THREE.SphereGeometry(0.038,8,6), new THREE.MeshLambertMaterial({color:0xd0a888}));
+eyeSockR.position.set(0.065,2.23,0.155);
+g.add(eyeSockR);
+var eyeL=new THREE.Mesh(new THREE.SphereGeometry(0.022,6,4), new THREE.MeshBasicMaterial({color:0x0a0f18}));
+eyeL.position.set(-0.065,2.23,0.183);
+g.add(eyeL);
+var eyeR=new THREE.Mesh(new THREE.SphereGeometry(0.022,6,4), new THREE.MeshBasicMaterial({color:0x0a0f18}));
+eyeR.position.set(0.065,2.23,0.183);
+g.add(eyeR);
+
+// --- Brows (dark stripes above eyes) ---
+var browL=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.02,0.025), new THREE.MeshLambertMaterial({color:0x2a1810}));
+browL.position.set(-0.065,2.27,0.18);
+browL.rotation.z=0.15;
+g.add(browL);
+var browR=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.02,0.025), new THREE.MeshLambertMaterial({color:0x2a1810}));
+browR.position.set(0.065,2.27,0.18);
+browR.rotation.z=-0.15;
+g.add(browR);
+
+// --- Nose ---
+var nose=new THREE.Mesh(new THREE.ConeGeometry(0.028,0.08,6), matSkin);
+nose.rotation.x=Math.PI/2;
+nose.position.set(0,2.18,0.2);
+g.add(nose);
+
+// --- Mustache (proud Soviet whiskers) ---
+var stache=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.028,0.02), new THREE.MeshLambertMaterial({color:0x2a1810}));
+stache.position.set(0,2.13,0.195);
+g.add(stache);
+// Mustache curls (small tilted boxes at the ends)
+var stacheL=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.028,0.02), new THREE.MeshLambertMaterial({color:0x2a1810}));
+stacheL.position.set(-0.07,2.115,0.195);
+stacheL.rotation.z=-0.25;
+g.add(stacheL);
+var stacheR=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.028,0.02), new THREE.MeshLambertMaterial({color:0x2a1810}));
+stacheR.position.set(0.07,2.115,0.195);
+stacheR.rotation.z=0.25;
+g.add(stacheR);
+
+// --- Mouth (thin dark line) ---
+var mouth=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.008,0.015), new THREE.MeshBasicMaterial({color:0x3a1810}));
+mouth.position.set(0,2.08,0.195);
+g.add(mouth);
+
+// --- Ushanka (rounded fur hat) ---
+var hatTop=new THREE.Mesh(new THREE.SphereGeometry(0.23,14,10,0,Math.PI*2,0,Math.PI/2), matHat);
+hatTop.position.y=2.36;
+hatTop.castShadow=true;
+g.add(hatTop);
+var hatBand=new THREE.Mesh(new THREE.CylinderGeometry(0.23,0.23,0.11,14), matHat);
+hatBand.position.y=2.3;
+g.add(hatBand);
+// Ear flaps (folded down)
+var earFL=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.26,0.32), matHat);
+earFL.position.set(-0.22,2.2,0);
+earFL.rotation.z=-0.08;
+g.add(earFL);
+var earFR=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.26,0.32), matHat);
+earFR.position.set(0.22,2.2,0);
+earFR.rotation.z=0.08;
+g.add(earFR);
+// Front brim
+var brim=new THREE.Mesh(new THREE.BoxGeometry(0.38,0.09,0.06), matHat);
+brim.position.set(0,2.31,0.22);
+g.add(brim);
+
+// --- Red star with yellow center ---
+var starBg=new THREE.Mesh(new THREE.PlaneGeometry(0.15,0.15), matStar);
+starBg.position.set(0,2.36,0.235);
+g.add(starBg);
+var starCtr=new THREE.Mesh(new THREE.CircleGeometry(0.03,8), new THREE.MeshBasicMaterial({color:0xffd820}));
+starCtr.position.set(0,2.36,0.236);
+g.add(starCtr);
+
+// --- Rifle held at hip (Mosin-Nagant) ---
+var rifleGrp=new THREE.Group();
+var stock=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.14,0.55), matWood);
+stock.position.z=-0.15;
+rifleGrp.add(stock);
+var receiver=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.09,0.16), matMetal);
+receiver.position.set(0,0.02,0.05);
+rifleGrp.add(receiver);
+var rBarrel=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.75,8), matMetal);
+rBarrel.rotation.x=Math.PI/2;
+rBarrel.position.set(0,0.03,0.55);
+rifleGrp.add(rBarrel);
+var bayonet=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.02,0.3),new THREE.MeshBasicMaterial({color:0xd0d0d0}));
+bayonet.position.set(0,0.03,1.05);
+rifleGrp.add(bayonet);
+rifleGrp.position.set(0.15,1.3,0.32);
+rifleGrp.rotation.y=-0.2;
+g.add(rifleGrp);
+
+g.position.set(x,0,z);
+scene.add(g);
+return {
+mesh:g, hp:100, alive:true,
+lastShot:performance.now()+800+Math.random()*1600,
+speed:1.1+Math.random()*0.6,
+deathTime:0, walkPhase:Math.random()*Math.PI*2,
+legLg:legLg, legRg:legRg, armLg:armLg, armRg:armRg,
+moving:false
+};
 }
 // Same spawn positions as before
 var spawns=[[-8,-8],[6,-6],[-2,-14],[10,-17],[-12,-20],[0,-25],[14,-11]];

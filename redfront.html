@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Red Front: Moscow 1962</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700;900&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font-family:'Rubik',sans-serif;-webkit-font-smoothing:antialiased}
+#c{display:block;width:100%;height:100%}
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:radial-gradient(circle at center,rgba(20,10,10,.85),rgba(0,0,0,.95));backdrop-filter:blur(4px);text-align:center;padding:24px}
+.overlay.hide{display:none}
+.card{max-width:560px;background:linear-gradient(180deg,#1a0d0d,#0f0808);border:2px solid #7a1a1a;border-radius:12px;padding:32px 36px;box-shadow:0 20px 60px rgba(139,0,0,.5)}
+.card .flag{color:#ff3838;font-family:'Special Elite',serif;letter-spacing:.25em;font-size:12px;margin-bottom:6px}
+.card h1{font-family:'Special Elite',serif;font-size:36px;font-weight:900;color:#fff;line-height:1.1;margin-bottom:8px;letter-spacing:-.01em;text-shadow:0 2px 12px rgba(255,50,50,.35)}
+.card h2{font-size:13px;font-weight:700;color:#ff6b6b;letter-spacing:.18em;text-transform:uppercase;margin-bottom:16px}
+.card .briefing{font-size:14px;line-height:1.6;color:#c9c4c4;text-align:left;margin:16px 0;padding:14px 16px;background:rgba(0,0,0,.35);border-left:3px solid #7a1a1a;font-family:'Special Elite',serif}
+.controls{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:18px 0 6px;font-size:13px;color:#c9c4c4;text-align:left;align-items:center}
+.controls kbd{background:#2a1515;border:1px solid #7a1a1a;border-radius:4px;padding:3px 10px;font-family:monospace;font-weight:700;color:#fff;text-align:center;min-width:34px;display:inline-block}
+.note{font-size:11px;color:#8a8080;margin-top:6px;font-style:italic}
+.btn{background:linear-gradient(180deg,#a01f1f,#7a1414);color:#fff;border:none;padding:14px 34px;font-family:'Rubik',sans-serif;font-weight:700;font-size:14px;letter-spacing:.12em;text-transform:uppercase;border-radius:6px;cursor:pointer;box-shadow:0 6px 20px rgba(139,0,0,.5);transition:transform .1s;margin-top:14px}
+.btn:hover{transform:translateY(-2px)}
+#hud{position:fixed;inset:0;z-index:50;pointer-events:none;display:none}
+#hud.show{display:block}
+.stat{position:absolute;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.1);padding:10px 16px;border-radius:6px;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;backdrop-filter:blur(6px)}
+.stat .label{color:#c9c4c4;font-size:10px;margin-bottom:2px}
+.stat .val{color:#fff;font-size:22px;font-weight:900;line-height:1}
+.stat .val.red{color:#ff5252}
+.stat .val.gold{color:#ffcf40}
+#hp{top:16px;left:16px}
+#enemies{top:16px;right:16px;text-align:right}
+#ammo{bottom:16px;right:16px;text-align:right}
+#objective{top:16px;left:50%;transform:translateX(-50%);text-align:center;background:rgba(0,0,0,.75);border:1px solid rgba(255,50,50,.4);padding:8px 20px}
+#objective .label{color:#ff5252;letter-spacing:.2em;font-size:10px}
+#objective .val{font-size:13px;font-weight:700}
+#crosshair{position:absolute;top:50%;left:50%;width:18px;height:18px;transform:translate(-50%,-50%);pointer-events:none}
+#crosshair::before,#crosshair::after{content:"";position:absolute;background:rgba(255,255,255,.75);box-shadow:0 0 3px rgba(0,0,0,.9)}
+#crosshair::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%)}
+#crosshair::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
+#dot{position:absolute;top:50%;left:50%;width:3px;height:3px;background:#ff3838;transform:translate(-50%,-50%);border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,.9)}
+#damage{position:fixed;inset:0;z-index:40;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,0,0,.55) 100%);opacity:0;transition:opacity .3s}
+#damage.hit{opacity:1;transition:opacity 0s}
+#weapon{position:fixed;bottom:-30px;right:-30px;width:360px;height:230px;pointer-events:none;z-index:46;transform-origin:80% 100%;transition:transform .06s}
+#weapon.recoil{transform:translate(-10px,14px) rotate(-4deg)}
+#weapon svg{width:100%;height:100%;filter:drop-shadow(-4px -4px 10px rgba(0,0,0,.85))}
+#lock{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#ffcf40;font-size:11px;letter-spacing:.2em;background:rgba(0,0,0,.85);padding:8px 16px;border-radius:4px;display:none;border:1px solid rgba(255,207,64,.3)}
+#lock.show{display:block}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div class="stat" id="hp"><div class="label">Health</div><div class="val" id="hp-val">100</div></div>
+  <div class="stat" id="enemies"><div class="label">Hostiles</div><div class="val red" id="enemy-val">0</div></div>
+  <div class="stat" id="ammo"><div class="label">Ammo</div><div class="val gold" id="ammo-val">30</div></div>
+  <div class="stat" id="objective"><div class="label">OBJECTIVE</div><div class="val">Eliminate all Red Army guards</div></div>
+  <div id="crosshair"></div>
+  <div id="dot"></div>
+  <div id="damage"></div>
+  <div id="weapon">
+    <svg viewBox="0 0 360 230" xmlns="http://www.w3.org/2000/svg">
+      <path d="M40 105 L15 120 L15 155 L55 140 Z" fill="#4a3020"/>
+      <rect x="55" y="105" width="240" height="22" fill="#3a2818" rx="2"/>
+      <rect x="55" y="105" width="240" height="3" fill="#5a3828" opacity="0.6"/>
+      <rect x="150" y="95" width="110" height="12" fill="#2a1810"/>
+      <rect x="245" y="110" width="95" height="8" fill="#2a2a2a" rx="1"/>
+      <rect x="335" y="107" width="14" height="14" fill="#1a1a1a" rx="7"/>
+      <rect x="152" y="120" width="16" height="50" fill="#3a2818" rx="2"/>
+      <path d="M145 125 L180 125 L180 148 L145 148 Z" fill="none" stroke="#2a1810" stroke-width="3"/>
+      <rect x="248" y="98" width="6" height="14" fill="#1a1a1a"/>
+      <rect x="90" y="128" width="30" height="18" fill="#2a1810" rx="2"/>
+    </svg>
+  </div>
+  <div id="lock">CLICK TO CAPTURE MOUSE  •  ESC TO RELEASE</div>
+</div>
+
+<div class="overlay" id="briefing">
+  <div class="card">
+    <div class="flag">★  CLASSIFIED  ★</div>
+    <h1>RED FRONT</h1>
+    <h2>Moscow, Winter 1962</h2>
+    <div class="briefing">
+      Agent, our operatives have been cornered at a checkpoint on the outskirts of Moscow. Fight your way through, eliminate all Red Army guards, and secure the perimeter. Reinforcements are inbound — but you're on your own until then.
+    </div>
+    <div class="controls">
+      <kbd>W</kbd><span>Move forward</span>
+      <kbd>S</kbd><span>Move backward</span>
+      <kbd>A / D</kbd><span>Strafe left / right</span>
+      <kbd>Mouse</kbd><span>Aim</span>
+      <kbd>Click</kbd><span>Fire</span>
+      <kbd>Esc</kbd><span>Release mouse</span>
+    </div>
+    <div class="note">Desktop / mouse required.</div>
+    <button class="btn" id="start">Begin mission</button>
+  </div>
+</div>
+
+<div class="overlay hide" id="end">
+  <div class="card">
+    <div class="flag" id="end-flag">★  MISSION  ★</div>
+    <h1 id="end-title">—</h1>
+    <h2 id="end-sub">—</h2>
+    <div class="briefing" id="end-msg">—</div>
+    <button class="btn" id="retry">Redeploy</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+if(typeof THREE==='undefined'){
+  document.getElementById('briefing').innerHTML='<div class="card"><h1>ERROR</h1><div class="briefing">Couldn’t load 3D engine. Check your internet connection and refresh.</div></div>';
+  return;
+}
+
+var canvas=document.getElementById('c');
+var scene=new THREE.Scene();
+scene.background=new THREE.Color(0x36363f);
+scene.fog=new THREE.Fog(0x36363f,18,85);
+
+var camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,300);
+camera.rotation.order='YXZ';
+camera.position.set(0,1.7,25);
+
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
+
+window.addEventListener('resize',function(){
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+// Lighting
+scene.add(new THREE.AmbientLight(0x8899aa,0.75));
+var sun=new THREE.DirectionalLight(0xfff2d8,0.55);
+sun.position.set(30,40,20);
+scene.add(sun);
+var rim=new THREE.DirectionalLight(0x4460a0,0.4);
+rim.position.set(-20,20,-30);
+scene.add(rim);
+
+// Snowy ground
+var ground=new THREE.Mesh(
+  new THREE.PlaneGeometry(300,300),
+  new THREE.MeshLambertMaterial({color:0xd8d8dc})
+);
+ground.rotation.x=-Math.PI/2;
+scene.add(ground);
+
+// Snow patches
+for(var i=0;i<180;i++){
+  var s=new THREE.Mesh(
+    new THREE.PlaneGeometry(0.5+Math.random()*1.5,0.5+Math.random()*1.5),
+    new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(0,0,0.86+Math.random()*0.1)})
+  );
+  s.rotation.x=-Math.PI/2;
+  s.position.set((Math.random()-0.5)*80,0.01,(Math.random()-0.5)*80);
+  scene.add(s);
+}
+
+// Buildings & walls
+var walls=[];
+function box(x,y,z,w,h,d,color){
+  var m=new THREE.Mesh(
+    new THREE.BoxGeometry(w,h,d),
+    new THREE.MeshLambertMaterial({color:color})
+  );
+  m.position.set(x,y,z);
+  scene.add(m);
+  m.userData.bbox=new THREE.Box3().setFromObject(m);
+  walls.push(m);
+  return m;
+}
+
+// Grey Stalinist perimeter
+box(-16,4,-18,10,8,8,0x606670);
+box(16,5,-18,10,10,8,0x555a63);
+box(-24,3,0,4,6,20,0x656b76);
+box(24,3,0,4,6,20,0x605968);
+box(0,4,-32,30,8,4,0x585d68);
+// Sandbag cover
+box(-6,0.6,-5,3,1.2,1.5,0x8b8055);
+box(2,0.6,-9,3,1.2,1.5,0x8b8055);
+box(8,0.6,-3,3,1.2,1.5,0x8b8055);
+box(-4,0.6,-15,4,1.2,1.5,0x8b8055);
+box(6,0.6,-20,3.5,1.2,1.5,0x8b8055);
+// Vehicles / crates
+box(-14,0.8,-4,3.5,1.6,2,0x2a3a3a);
+box(12,0.8,-24,3,1.6,2,0x3a2a2a);
+
+// Red flags
+function flag(x,z){
+  var pole=new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08,0.08,10,8),
+    new THREE.MeshLambertMaterial({color:0x333333})
+  );
+  pole.position.set(x,5,z);
+  scene.add(pole);
+  var cloth=new THREE.Mesh(
+    new THREE.PlaneGeometry(3,1.8),
+    new THREE.MeshLambertMaterial({color:0xc41e1e,side:THREE.DoubleSide})
+  );
+  cloth.position.set(x+1.5,8.5,z);
+  scene.add(cloth);
+  var star=new THREE.Mesh(
+    new THREE.CircleGeometry(0.28,5),
+    new THREE.MeshBasicMaterial({color:0xffd820,side:THREE.DoubleSide})
+  );
+  star.position.set(x+0.9,8.9,z+0.02);
+  scene.add(star);
+}
+flag(-18,-22);
+flag(18,-22);
+flag(0,-34);
+
+// Enemies
+var enemies=[];
+function makeEnemy(x,z){
+  var g=new THREE.Group();
+  var body=new THREE.Mesh(new THREE.BoxGeometry(0.7,1.3,0.45),new THREE.MeshLambertMaterial({color:0x3e5c3e}));
+  body.position.y=0.65;g.add(body);
+  var belt=new THREE.Mesh(new THREE.BoxGeometry(0.72,0.1,0.47),new THREE.MeshLambertMaterial({color:0x2a1a10}));
+  belt.position.y=0.9;g.add(belt);
+  var head=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.36,0.36),new THREE.MeshLambertMaterial({color:0xecc9a4}));
+  head.position.y=1.5;g.add(head);
+  var hat=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.24,0.44),new THREE.MeshLambertMaterial({color:0x241610}));
+  hat.position.y=1.77;g.add(hat);
+  var star=new THREE.Mesh(new THREE.PlaneGeometry(0.14,0.14),new THREE.MeshBasicMaterial({color:0xff2020}));
+  star.position.set(0,1.79,0.221);g.add(star);
+  var larm=new THREE.Mesh(new THREE.BoxGeometry(0.22,1.0,0.22),new THREE.MeshLambertMaterial({color:0x3e5c3e}));
+  larm.position.set(-0.45,0.75,0);g.add(larm);
+  var rarm=new THREE.Mesh(new THREE.BoxGeometry(0.22,1.0,0.22),new THREE.MeshLambertMaterial({color:0x3e5c3e}));
+  rarm.position.set(0.45,0.75,0);g.add(rarm);
+  var lleg=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.65,0.25),new THREE.MeshLambertMaterial({color:0x2a2a2a}));
+  lleg.position.set(-0.18,-0.33,0);g.add(lleg);
+  var rleg=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.65,0.25),new THREE.MeshLambertMaterial({color:0x2a2a2a}));
+  rleg.position.set(0.18,-0.33,0);g.add(rleg);
+  var rifle=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,1.15),new THREE.MeshLambertMaterial({color:0x2a1810}));
+  rifle.position.set(0.35,1.0,0.4);g.add(rifle);
+  g.position.set(x,0.65,z);
+  scene.add(g);
+  return {mesh:g,hp:100,alive:true,lastShot:performance.now()+800+Math.random()*1500,speed:1.1+Math.random()*0.7,deathTime:0};
+}
+
+var spawns=[[-8,-8],[6,-6],[-2,-14],[10,-17],[-12,-20],[0,-25],[14,-11]];
+spawns.forEach(function(s){ enemies.push(makeEnemy(s[0],s[1])); });
+
+// Player state
+var player={hp:100,ammo:30,radius:0.5};
+
+// Controls
+var keys={};
+addEventListener('keydown',function(e){ keys[e.code]=true; if(e.code==='Escape' && document.exitPointerLock) document.exitPointerLock(); });
+addEventListener('keyup',function(e){ keys[e.code]=false; });
+
+var yaw=0,pitch=0;
+canvas.addEventListener('click',function(){ if(gameActive) canvas.requestPointerLock(); });
+document.addEventListener('pointerlockchange',function(){
+  document.getElementById('lock').classList.toggle('show', document.pointerLockElement!==canvas && gameActive);
+});
+addEventListener('mousemove',function(e){
+  if(document.pointerLockElement===canvas){
+    yaw-=e.movementX*0.0022;
+    pitch-=e.movementY*0.0022;
+    pitch=Math.max(-Math.PI/2+0.1,Math.min(Math.PI/2-0.1,pitch));
+    camera.rotation.y=yaw;
+    camera.rotation.x=pitch;
+  }
+});
+addEventListener('mousedown',function(e){
+  if(document.pointerLockElement!==canvas) return;
+  if(e.button===0 && gameActive) shoot();
+});
+
+// Shooting
+var raycaster=new THREE.Raycaster();
+function shoot(){
+  if(player.ammo<=0) return;
+  player.ammo--;
+  updateHUD();
+  recoil();
+  raycaster.setFromCamera({x:0,y:0}, camera);
+  var meshes=enemies.filter(function(e){return e.alive;}).map(function(e){return e.mesh;});
+  var hits=raycaster.intersectObjects(meshes,true);
+  if(hits.length>0){
+    var node=hits[0].object;
+    while(node.parent && node.parent!==scene) node=node.parent;
+    for(var i=0;i<enemies.length;i++){
+      if(enemies[i].mesh===node && enemies[i].alive){
+        var wallHits=raycaster.intersectObjects(walls);
+        if(wallHits.length===0 || wallHits[0].distance>hits[0].distance){
+          enemies[i].hp-=55;
+          if(enemies[i].hp<=0) killEnemy(enemies[i]);
+        }
+        break;
+      }
+    }
+  }
+}
+
+function killEnemy(e){
+  e.alive=false;
+  e.deathTime=performance.now();
+  updateHUD();
+  if(enemies.every(function(x){return !x.alive;})) endGame(true);
+}
+
+function enemyShoot(e){
+  var d=camera.position.distanceTo(e.mesh.position);
+  var chance=Math.max(0.15,0.55-d*0.014);
+  if(Math.random()<chance){
+    var dmg=6+Math.random()*7;
+    player.hp=Math.max(0,player.hp-dmg);
+    hitFlash();
+    updateHUD();
+    if(player.hp<=0) endGame(false);
+  }
+}
+
+function muzzleFlashEnemy(e){
+  var f=new THREE.PointLight(0xffaa44,4,4.5);
+  f.position.copy(e.mesh.position);
+  f.position.y=1.3;
+  scene.add(f);
+  setTimeout(function(){scene.remove(f);},60);
+}
+
+// Movement
+function updateMovement(dt){
+  var speed=5;
+  var fwd=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+  var right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  var m=new THREE.Vector3();
+  if(keys['KeyW']) m.add(fwd);
+  if(keys['KeyS']) m.sub(fwd);
+  if(keys['KeyA']) m.sub(right);
+  if(keys['KeyD']) m.add(right);
+  if(m.lengthSq()>0){
+    m.normalize().multiplyScalar(speed*dt);
+    var next=camera.position.clone().add(m);
+    if(!collides(next)){
+      camera.position.copy(next);
+    } else {
+      var nx=camera.position.clone(); nx.x=next.x;
+      if(!collides(nx)) camera.position.x=next.x;
+      var nz=camera.position.clone(); nz.z=next.z;
+      if(!collides(nz)) camera.position.z=next.z;
+    }
+  }
+  camera.position.y=1.7;
+  camera.position.x=Math.max(-28,Math.min(28,camera.position.x));
+  camera.position.z=Math.max(-33,Math.min(30,camera.position.z));
+}
+
+function collides(pos){
+  var r=player.radius;
+  for(var i=0;i<walls.length;i++){
+    var b=walls[i].userData.bbox;
+    if(pos.x>b.min.x-r && pos.x<b.max.x+r &&
+       pos.z>b.min.z-r && pos.z<b.max.z+r &&
+       pos.y>b.min.y-0.1 && pos.y<b.max.y+r) return true;
+  }
+  return false;
+}
+
+// Enemy AI
+function updateEnemies(dt,now){
+  for(var i=0;i<enemies.length;i++){
+    var e=enemies[i];
+    if(!e.alive){
+      if(e.deathTime && now-e.deathTime<700){
+        var t=(now-e.deathTime)/700;
+        e.mesh.rotation.x=t*Math.PI/2;
+        e.mesh.position.y=0.65-t*0.55;
+      }
+      continue;
+    }
+    var dir=new THREE.Vector3().subVectors(camera.position,e.mesh.position);
+    dir.y=0;
+    var dist=dir.length();
+    dir.normalize();
+    e.mesh.rotation.y=Math.atan2(dir.x,dir.z);
+    if(dist>7){
+      var step=dir.clone().multiplyScalar(e.speed*dt);
+      var nxt=e.mesh.position.clone().add(step);
+      var checkPos=new THREE.Vector3(nxt.x,1,nxt.z);
+      if(!collides(checkPos)){
+        e.mesh.position.x=nxt.x;
+        e.mesh.position.z=nxt.z;
+      }
+    }
+    if(now-e.lastShot>1600+Math.random()*900 && dist<35){
+      var from=e.mesh.position.clone(); from.y=1.5;
+      var to=camera.position.clone();
+      var seg=to.clone().sub(from);
+      var len=seg.length();
+      raycaster.set(from, seg.normalize());
+      var wh=raycaster.intersectObjects(walls);
+      if(wh.length===0 || wh[0].distance>len){
+        enemyShoot(e);
+        muzzleFlashEnemy(e);
+      }
+      e.lastShot=now;
+    }
+  }
+}
+
+function updateHUD(){
+  document.getElementById('hp-val').textContent=Math.ceil(player.hp);
+  document.getElementById('hp-val').style.color=player.hp<30?'#ff5252':(player.hp<60?'#ffcf40':'#fff');
+  document.getElementById('ammo-val').textContent=player.ammo;
+  document.getElementById('enemy-val').textContent=enemies.filter(function(e){return e.alive;}).length;
+}
+
+function hitFlash(){
+  var el=document.getElementById('damage');
+  el.classList.add('hit');
+  setTimeout(function(){el.classList.remove('hit');},80);
+}
+
+function recoil(){
+  var w=document.getElementById('weapon');
+  w.classList.add('recoil');
+  setTimeout(function(){w.classList.remove('recoil');},80);
+}
+
+// Game state
+var gameActive=false;
+var lastTime=performance.now();
+
+function startGame(){
+  gameActive=true;
+  document.getElementById('briefing').classList.add('hide');
+  document.getElementById('end').classList.add('hide');
+  document.getElementById('hud').classList.add('show');
+  updateHUD();
+  setTimeout(function(){ if(gameActive) canvas.requestPointerLock(); },50);
+}
+
+function resetGame(){
+  player.hp=100; player.ammo=30;
+  camera.position.set(0,1.7,25);
+  yaw=0; pitch=0;
+  camera.rotation.set(0,0,0);
+  enemies.forEach(function(e){ scene.remove(e.mesh); });
+  enemies=[];
+  spawns.forEach(function(s){ enemies.push(makeEnemy(s[0],s[1])); });
+  startGame();
+}
+
+function endGame(won){
+  gameActive=false;
+  if(document.exitPointerLock) document.exitPointerLock();
+  var end=document.getElementById('end');
+  document.getElementById('end-flag').textContent=won?'★  VICTORY  ★':'✕  KIA  ✕';
+  document.getElementById('end-title').textContent=won?'CHECKPOINT SECURED':'MISSION FAILED';
+  document.getElementById('end-sub').textContent=won?'All hostiles neutralized':'You were killed in action';
+  document.getElementById('end-msg').textContent=won?
+    'Well done, agent. The Red Army detail has been eliminated and the perimeter is secure. Extraction inbound.':
+    'Comrade, our operative fell to Soviet fire. Reinforcements have been dispatched. Prepare for another attempt.';
+  setTimeout(function(){ end.classList.remove('hide'); },500);
+}
+
+document.getElementById('start').addEventListener('click',startGame);
+document.getElementById('retry').addEventListener('click',resetGame);
+
+// Main loop
+function animate(){
+  var now=performance.now();
+  var dt=Math.min(0.05,(now-lastTime)/1000);
+  lastTime=now;
+  if(gameActive){
+    updateMovement(dt);
+    updateEnemies(dt,now);
+  } else {
+    for(var i=0;i<enemies.length;i++){
+      var e=enemies[i];
+      if(!e.alive && e.deathTime && now-e.deathTime<700){
+        var t=(now-e.deathTime)/700;
+        e.mesh.rotation.x=t*Math.PI/2;
+        e.mesh.position.y=0.65-t*0.55;
+      }
+    }
+  }
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+})();
+</script>
+</body>
+</html>

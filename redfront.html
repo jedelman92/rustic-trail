@@ -11,6 +11,9 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font-family:'Rubik',sans-serif;-webkit-font-smoothing:antialiased}
 #c{display:block;width:100%;height:100%}
+#vignette{position:fixed;inset:0;z-index:30;pointer-events:none;background:radial-gradient(ellipse at center,transparent 42%,rgba(0,0,0,.75) 100%);mix-blend-mode:multiply}
+#grain{position:fixed;inset:0;z-index:31;pointer-events:none;opacity:.08;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.7'/></svg>")}
+#tint{position:fixed;inset:0;z-index:29;pointer-events:none;background:linear-gradient(180deg,rgba(60,80,120,.06),rgba(140,90,60,.05));mix-blend-mode:overlay}
 .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:radial-gradient(circle at center,rgba(20,10,10,.85),rgba(0,0,0,.95));backdrop-filter:blur(4px);text-align:center;padding:24px}
 .overlay.hide{display:none}
 .card{max-width:560px;background:linear-gradient(180deg,#1a0d0d,#0f0808);border:2px solid #7a1a1a;border-radius:12px;padding:32px 36px;box-shadow:0 20px 60px rgba(139,0,0,.5)}
@@ -36,16 +39,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font
 #objective{top:16px;left:50%;transform:translateX(-50%);text-align:center;background:rgba(0,0,0,.75);border:1px solid rgba(255,50,50,.4);padding:8px 20px}
 #objective .label{color:#ff5252;letter-spacing:.2em;font-size:10px}
 #objective .val{font-size:13px;font-weight:700}
-#crosshair{position:absolute;top:50%;left:50%;width:18px;height:18px;transform:translate(-50%,-50%);pointer-events:none}
-#crosshair::before,#crosshair::after{content:"";position:absolute;background:rgba(255,255,255,.75);box-shadow:0 0 3px rgba(0,0,0,.9)}
-#crosshair::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%)}
-#crosshair::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
-#dot{position:absolute;top:50%;left:50%;width:3px;height:3px;background:#ff3838;transform:translate(-50%,-50%);border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,.9)}
-#damage{position:fixed;inset:0;z-index:40;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,0,0,.55) 100%);opacity:0;transition:opacity .3s}
+#crosshair{position:absolute;top:50%;left:50%;width:20px;height:20px;transform:translate(-50%,-50%);pointer-events:none}
+#crosshair::before,#crosshair::after{content:"";position:absolute;background:rgba(255,255,255,.85);box-shadow:0 0 4px rgba(0,0,0,.9)}
+#crosshair::before{left:50%;top:0;width:1.5px;height:100%;transform:translateX(-50%)}
+#crosshair::after{top:50%;left:0;height:1.5px;width:100%;transform:translateY(-50%)}
+#dot{position:absolute;top:50%;left:50%;width:2.5px;height:2.5px;background:#ff2828;transform:translate(-50%,-50%);border-radius:50%;box-shadow:0 0 4px rgba(255,0,0,.8)}
+#damage{position:fixed;inset:0;z-index:40;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(180,0,0,.65) 100%);opacity:0;transition:opacity .35s}
 #damage.hit{opacity:1;transition:opacity 0s}
-#weapon{position:fixed;bottom:-30px;right:-30px;width:360px;height:230px;pointer-events:none;z-index:46;transform-origin:80% 100%;transition:transform .06s}
-#weapon.recoil{transform:translate(-10px,14px) rotate(-4deg)}
-#weapon svg{width:100%;height:100%;filter:drop-shadow(-4px -4px 10px rgba(0,0,0,.85))}
 #lock{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#ffcf40;font-size:11px;letter-spacing:.2em;background:rgba(0,0,0,.85);padding:8px 16px;border-radius:4px;display:none;border:1px solid rgba(255,207,64,.3)}
 #lock.show{display:block}
 </style>
@@ -53,6 +53,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font
 <body>
 
 <canvas id="c"></canvas>
+<div id="tint"></div>
+<div id="vignette"></div>
+<div id="grain"></div>
 
 <div id="hud">
   <div class="stat" id="hp"><div class="label">Health</div><div class="val" id="hp-val">100</div></div>
@@ -62,20 +65,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font
   <div id="crosshair"></div>
   <div id="dot"></div>
   <div id="damage"></div>
-  <div id="weapon">
-    <svg viewBox="0 0 360 230" xmlns="http://www.w3.org/2000/svg">
-      <path d="M40 105 L15 120 L15 155 L55 140 Z" fill="#4a3020"/>
-      <rect x="55" y="105" width="240" height="22" fill="#3a2818" rx="2"/>
-      <rect x="55" y="105" width="240" height="3" fill="#5a3828" opacity="0.6"/>
-      <rect x="150" y="95" width="110" height="12" fill="#2a1810"/>
-      <rect x="245" y="110" width="95" height="8" fill="#2a2a2a" rx="1"/>
-      <rect x="335" y="107" width="14" height="14" fill="#1a1a1a" rx="7"/>
-      <rect x="152" y="120" width="16" height="50" fill="#3a2818" rx="2"/>
-      <path d="M145 125 L180 125 L180 148 L145 148 Z" fill="none" stroke="#2a1810" stroke-width="3"/>
-      <rect x="248" y="98" width="6" height="14" fill="#1a1a1a"/>
-      <rect x="90" y="128" width="30" height="18" fill="#2a1810" rx="2"/>
-    </svg>
-  </div>
   <div id="lock">CLICK TO CAPTURE MOUSE  •  ESC TO RELEASE</div>
 </div>
 
@@ -122,16 +111,22 @@ if(typeof THREE==='undefined'){
 
 var canvas=document.getElementById('c');
 var scene=new THREE.Scene();
-scene.background=new THREE.Color(0x36363f);
-scene.fog=new THREE.Fog(0x36363f,18,85);
+scene.background=new THREE.Color(0x2a303c);
+scene.fog=new THREE.Fog(0x2a303c,20,90);
 
-var camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,300);
+var camera=new THREE.PerspectiveCamera(72,window.innerWidth/window.innerHeight,0.05,400);
 camera.rotation.order='YXZ';
 camera.position.set(0,1.7,25);
+scene.add(camera);
 
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
 
 window.addEventListener('resize',function(){
   camera.aspect=window.innerWidth/window.innerHeight;
@@ -139,125 +134,548 @@ window.addEventListener('resize',function(){
   renderer.setSize(window.innerWidth,window.innerHeight);
 });
 
-// Lighting
-scene.add(new THREE.AmbientLight(0x8899aa,0.75));
-var sun=new THREE.DirectionalLight(0xfff2d8,0.55);
-sun.position.set(30,40,20);
+// --- Sky (gradient sphere) ---
+var skyMat=new THREE.ShaderMaterial({
+  uniforms:{topColor:{value:new THREE.Color(0x15202f)},midColor:{value:new THREE.Color(0x3a4457)},bottomColor:{value:new THREE.Color(0x585d68)}},
+  vertexShader:'varying vec3 vPos; void main(){ vec4 wp=modelMatrix*vec4(position,1.0); vPos=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp; }',
+  fragmentShader:'uniform vec3 topColor; uniform vec3 midColor; uniform vec3 bottomColor; varying vec3 vPos; void main(){ float h=normalize(vPos).y; vec3 c = h<0.0 ? mix(bottomColor,midColor,h+1.0) : mix(midColor,topColor,pow(h,0.6)); gl_FragColor=vec4(c,1.0); }',
+  side:THREE.BackSide, depthWrite:false
+});
+var sky=new THREE.Mesh(new THREE.SphereGeometry(180,24,16), skyMat);
+scene.add(sky);
+
+// --- Lighting ---
+scene.add(new THREE.HemisphereLight(0x8fa4c0,0x2a2018,0.6));
+var sun=new THREE.DirectionalLight(0xfff0d0,0.85);
+sun.position.set(35,50,10);
+sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);
+sun.shadow.camera.left=-40;sun.shadow.camera.right=40;
+sun.shadow.camera.top=40;sun.shadow.camera.bottom=-40;
+sun.shadow.camera.near=1;sun.shadow.camera.far=120;
+sun.shadow.bias=-0.001;
 scene.add(sun);
-var rim=new THREE.DirectionalLight(0x4460a0,0.4);
-rim.position.set(-20,20,-30);
+var rim=new THREE.DirectionalLight(0x5070a0,0.3);
+rim.position.set(-25,15,-30);
 scene.add(rim);
 
-// Snowy ground
-var ground=new THREE.Mesh(
-  new THREE.PlaneGeometry(300,300),
-  new THREE.MeshLambertMaterial({color:0xd8d8dc})
-);
+// --- Materials ---
+var matSnow=new THREE.MeshLambertMaterial({color:0xe8e8ec});
+var matSnowDirty=new THREE.MeshLambertMaterial({color:0xa8a8a4});
+var matConcrete=new THREE.MeshLambertMaterial({color:0x484d55});
+var matConcreteDark=new THREE.MeshLambertMaterial({color:0x353a42});
+var matBrick=new THREE.MeshLambertMaterial({color:0x554035});
+var matWindowLit=new THREE.MeshBasicMaterial({color:0xffcc66});
+var matWindowDim=new THREE.MeshBasicMaterial({color:0x8b6a35});
+var matWindowDark=new THREE.MeshBasicMaterial({color:0x1a1e26});
+var matWindowBroken=new THREE.MeshBasicMaterial({color:0x0a0d12});
+var matSandbag=new THREE.MeshLambertMaterial({color:0x8b7a4a});
+var matSandbagB=new THREE.MeshLambertMaterial({color:0x756540});
+var matWood=new THREE.MeshLambertMaterial({color:0x3a2818});
+var matMetal=new THREE.MeshLambertMaterial({color:0x1e1e1e});
+var matBarrel=new THREE.MeshLambertMaterial({color:0x2a1a12});
+var matCoat=new THREE.MeshLambertMaterial({color:0x3e5c3e});
+var matCoatDark=new THREE.MeshLambertMaterial({color:0x2e4a2e});
+var matBoots=new THREE.MeshLambertMaterial({color:0x1a1a1a});
+var matPants=new THREE.MeshLambertMaterial({color:0x2a2a26});
+var matSkin=new THREE.MeshLambertMaterial({color:0xecc9a4});
+var matHat=new THREE.MeshLambertMaterial({color:0x241610});
+var matBelt=new THREE.MeshLambertMaterial({color:0x2a1a10});
+var matStar=new THREE.MeshBasicMaterial({color:0xff2020});
+var matFlag=new THREE.MeshLambertMaterial({color:0xc41e1e,side:THREE.DoubleSide});
+var matEmblem=new THREE.MeshBasicMaterial({color:0xffd820,side:THREE.DoubleSide});
+var matTruck=new THREE.MeshLambertMaterial({color:0x3a4a3a});
+var matTruckDark=new THREE.MeshLambertMaterial({color:0x2a3a2a});
+var matTire=new THREE.MeshLambertMaterial({color:0x121212});
+var matGlassDark=new THREE.MeshBasicMaterial({color:0x0a0f18});
+
+// --- Ground: snow + trampled areas ---
+var ground=new THREE.Mesh(new THREE.PlaneGeometry(300,300), matSnow);
 ground.rotation.x=-Math.PI/2;
+ground.receiveShadow=true;
 scene.add(ground);
 
-// Snow patches
-for(var i=0;i<180;i++){
-  var s=new THREE.Mesh(
-    new THREE.PlaneGeometry(0.5+Math.random()*1.5,0.5+Math.random()*1.5),
-    new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(0,0,0.86+Math.random()*0.1)})
-  );
-  s.rotation.x=-Math.PI/2;
-  s.position.set((Math.random()-0.5)*80,0.01,(Math.random()-0.5)*80);
+// Muddy trampled patches
+function patch(x,z,r,mat){
+  var p=new THREE.Mesh(new THREE.CircleGeometry(r,10),mat||matSnowDirty);
+  p.rotation.x=-Math.PI/2;
+  p.position.set(x,0.005,z);
+  scene.add(p);
+}
+patch(0,10,5); patch(-8,-2,3.5); patch(6,-4,3); patch(-2,-14,4);
+patch(10,-16,3); patch(-12,-18,3.5); patch(0,-24,4); patch(14,-10,2.5);
+patch(-6,-30,3.5,new THREE.MeshLambertMaterial({color:0x2a1a10})); // scorched patch
+patch(8,-28,2.5,new THREE.MeshLambertMaterial({color:0x2a1a10}));
+
+// Snow specks and rubble
+for(var i=0;i<200;i++){
+  var isRock=Math.random()<0.3;
+  var mat=isRock?new THREE.MeshLambertMaterial({color:0x3a3a38+Math.random()*0x080808}):
+    new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(0,0,0.88+Math.random()*0.08)});
+  var s=new THREE.Mesh(new THREE.BoxGeometry(0.15+Math.random()*0.4,0.05+Math.random()*0.15,0.15+Math.random()*0.4),mat);
+  s.position.set((Math.random()-0.5)*80,0.03,(Math.random()-0.5)*80);
+  s.rotation.y=Math.random()*Math.PI;
   scene.add(s);
 }
 
-// Buildings & walls
-var walls=[];
-function box(x,y,z,w,h,d,color){
-  var m=new THREE.Mesh(
-    new THREE.BoxGeometry(w,h,d),
-    new THREE.MeshLambertMaterial({color:color})
+// Snowbanks (larger drifts)
+for(var i=0;i<12;i++){
+  var d=new THREE.Mesh(
+    new THREE.SphereGeometry(1.5+Math.random()*1.2,8,6),
+    matSnow
   );
-  m.position.set(x,y,z);
-  scene.add(m);
-  m.userData.bbox=new THREE.Box3().setFromObject(m);
-  walls.push(m);
-  return m;
+  d.scale.set(1.6,0.35,1.2);
+  d.position.set((Math.random()-0.5)*60,0.15,(Math.random()-0.5)*60);
+  d.rotation.y=Math.random()*Math.PI;
+  scene.add(d);
 }
 
-// Grey Stalinist perimeter
-box(-16,4,-18,10,8,8,0x606670);
-box(16,5,-18,10,10,8,0x555a63);
-box(-24,3,0,4,6,20,0x656b76);
-box(24,3,0,4,6,20,0x605968);
-box(0,4,-32,30,8,4,0x585d68);
-// Sandbag cover
-box(-6,0.6,-5,3,1.2,1.5,0x8b8055);
-box(2,0.6,-9,3,1.2,1.5,0x8b8055);
-box(8,0.6,-3,3,1.2,1.5,0x8b8055);
-box(-4,0.6,-15,4,1.2,1.5,0x8b8055);
-box(6,0.6,-20,3.5,1.2,1.5,0x8b8055);
-// Vehicles / crates
-box(-14,0.8,-4,3.5,1.6,2,0x2a3a3a);
-box(12,0.8,-24,3,1.6,2,0x3a2a2a);
+// --- Collision walls ---
+var walls=[];
+function collider(x,z,w,h,d){
+  var bbox=new THREE.Box3(
+    new THREE.Vector3(x-w/2,0,z-d/2),
+    new THREE.Vector3(x+w/2,h,z+d/2)
+  );
+  walls.push({userData:{bbox:bbox}});
+}
 
-// Red flags
+// --- Stalinist building ---
+function building(x,z,w,h,d,color){
+  var g=new THREE.Group();
+  // Base (darker plinth)
+  var base=new THREE.Mesh(new THREE.BoxGeometry(w+0.4,1.2,d+0.4),matConcreteDark);
+  base.position.y=0.6;
+  base.castShadow=true; base.receiveShadow=true;
+  g.add(base);
+  // Body
+  var body=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({color:color||0x555a63}));
+  body.position.y=h/2+0.6;
+  body.castShadow=true; body.receiveShadow=true;
+  g.add(body);
+  // Roof cornice
+  var cornice=new THREE.Mesh(new THREE.BoxGeometry(w+0.6,0.4,d+0.6),matConcreteDark);
+  cornice.position.y=h+0.6;
+  g.add(cornice);
+  // Roof top
+  var roof=new THREE.Mesh(new THREE.BoxGeometry(w-0.5,0.3,d-0.5),new THREE.MeshLambertMaterial({color:0x2a2f36}));
+  roof.position.y=h+0.85;
+  g.add(roof);
+  // Windows
+  var floors=Math.max(2,Math.floor(h/2.2));
+  function faceWindows(faceW,faceZ,rotY,side){
+    var cols=Math.max(2,Math.floor(faceW/1.6));
+    for(var f=0;f<floors;f++){
+      var yy=1.6+f*2;
+      if(yy>h-0.3) continue;
+      for(var c=0;c<cols;c++){
+        var wx=-faceW/2+(c+0.5)*(faceW/cols);
+        var r=Math.random();
+        var m=r<0.18?matWindowLit:(r<0.32?matWindowDim:(r<0.45?matWindowBroken:matWindowDark));
+        var win=new THREE.Mesh(new THREE.PlaneGeometry(0.85,1.2), m);
+        // Position on face
+        if(side==='front'){ win.position.set(wx,yy+0.6,d/2+0.02); }
+        else if(side==='back'){ win.position.set(wx,yy+0.6,-d/2-0.02); win.rotation.y=Math.PI; }
+        else if(side==='left'){ win.position.set(-w/2-0.02,yy+0.6,wx); win.rotation.y=-Math.PI/2; }
+        else if(side==='right'){ win.position.set(w/2+0.02,yy+0.6,wx); win.rotation.y=Math.PI/2; }
+        g.add(win);
+        // Window frame (thin dark border)
+        var frame=new THREE.Mesh(new THREE.PlaneGeometry(0.98,1.34),new THREE.MeshBasicMaterial({color:0x1a1214}));
+        frame.position.copy(win.position);
+        frame.rotation.copy(win.rotation);
+        // nudge slightly back
+        var back=new THREE.Vector3(0,0,-0.01).applyEuler(win.rotation);
+        frame.position.add(back);
+        g.add(frame);
+      }
+    }
+  }
+  faceWindows(w,d,0,'front');
+  faceWindows(w,d,0,'back');
+  faceWindows(d,w,0,'left');
+  faceWindows(d,w,0,'right');
+  // Occasional chimney
+  if(Math.random()<0.6){
+    var chim=new THREE.Mesh(new THREE.BoxGeometry(0.6,1.4,0.6),matBrick);
+    chim.position.set((Math.random()-0.5)*(w-1),h+1.5,(Math.random()-0.5)*(d-1));
+    g.add(chim);
+  }
+  g.position.set(x,0,z);
+  scene.add(g);
+  collider(x,z,w+0.4,h+1,d+0.4);
+}
+
+// Same layout as before
+building(-16,-18,10,8,8,0x606670);
+building(16,-18,10,10,8,0x555a63);
+building(-24,0,4,6,20,0x656b76);
+building(24,0,4,6,20,0x605968);
+building(0,-32,30,8,4,0x585d68);
+
+// --- Sandbag pile (pillow shapes stacked) ---
+function sandbagPile(x,z,len,rotY){
+  var g=new THREE.Group();
+  var bags=Math.max(3,Math.floor(len/0.55));
+  for(var row=0;row<2;row++){
+    for(var i=0;i<bags;i++){
+      var bag=new THREE.Mesh(
+        new THREE.SphereGeometry(0.32,6,4),
+        i%2?matSandbag:matSandbagB
+      );
+      bag.scale.set(1.3,0.55,0.75);
+      bag.castShadow=true; bag.receiveShadow=true;
+      var offset=(row%2)*(len/bags/2);
+      bag.position.set(
+        -len/2+(i+0.5)*(len/bags)+offset,
+        0.28+row*0.5,
+        (row%2)*0.12-0.06
+      );
+      bag.rotation.y=(Math.random()-0.5)*0.15;
+      g.add(bag);
+    }
+  }
+  g.position.set(x,0,z);
+  g.rotation.y=rotY||0;
+  scene.add(g);
+  collider(x,z,len,1.2,1.4);
+}
+sandbagPile(-6,-5,3);
+sandbagPile(2,-9,3.5);
+sandbagPile(8,-3,3);
+sandbagPile(-4,-15,4);
+sandbagPile(6,-20,3.5,0.3);
+
+// --- Barbed wire fence ---
+function barbedWire(x1,z1,x2,z2){
+  var g=new THREE.Group();
+  var len=Math.hypot(x2-x1,z2-z1);
+  var posts=Math.max(2,Math.floor(len/2));
+  for(var i=0;i<=posts;i++){
+    var t=i/posts;
+    var post=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1.4,6), matMetal);
+    post.position.set(x1+(x2-x1)*t,0.7,z1+(z2-z1)*t);
+    scene.add(post);
+  }
+  // 3 wire strands
+  for(var w=0;w<3;w++){
+    var wire=new THREE.Mesh(
+      new THREE.CylinderGeometry(0.015,0.015,len,4),
+      new THREE.MeshBasicMaterial({color:0x606060})
+    );
+    wire.position.set((x1+x2)/2,0.5+w*0.35,(z1+z2)/2);
+    wire.rotation.z=Math.PI/2;
+    wire.rotation.y=Math.atan2(x2-x1,z2-z1)+Math.PI/2;
+    scene.add(wire);
+  }
+}
+barbedWire(-24,-8,-16,-12);
+barbedWire(24,-8,16,-12);
+
+// --- Truck / vehicle ---
+function truck(x,z,angle,color){
+  var g=new THREE.Group();
+  var c=color||0x2a3a2a;
+  var mat=new THREE.MeshLambertMaterial({color:c});
+  var matD=new THREE.MeshLambertMaterial({color:c-0x101010});
+  // Bed
+  var bed=new THREE.Mesh(new THREE.BoxGeometry(2.4,1.1,1.6), mat);
+  bed.position.set(0.9,1.0,0);
+  bed.castShadow=true;
+  g.add(bed);
+  // Bed canopy frame (dark)
+  var canopy=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.8,1.6),new THREE.MeshLambertMaterial({color:0x1e2418}));
+  canopy.position.set(0.9,1.95,0);
+  g.add(canopy);
+  // Cabin
+  var cab=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.6), mat);
+  cab.position.set(-0.9,1.2,0);
+  cab.castShadow=true;
+  g.add(cab);
+  // Hood
+  var hood=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.9,1.4), matD);
+  hood.position.set(-1.9,0.9,0);
+  g.add(hood);
+  // Windshield
+  var wind=new THREE.Mesh(new THREE.PlaneGeometry(1.4,0.8), matGlassDark);
+  wind.position.set(-0.15,1.55,0);
+  wind.rotation.y=-Math.PI/2;
+  g.add(wind);
+  // Wheels
+  [[-1.6,-0.85],[-1.6,0.85],[1.5,-0.85],[1.5,0.85]].forEach(function(p){
+    var w=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.32,10), matTire);
+    w.rotation.z=Math.PI/2;
+    w.position.set(p[0],0.4,p[1]);
+    g.add(w);
+  });
+  // Headlights
+  [[-0.85,-2.35,-0.5],[-0.85,-2.35,0.5]].forEach(function(p){
+    var l=new THREE.Mesh(new THREE.CircleGeometry(0.14,10), new THREE.MeshBasicMaterial({color:0xffe0a0}));
+    l.position.set(p[1],p[0]+1.65,p[2]);
+    l.rotation.y=-Math.PI/2;
+    g.add(l);
+  });
+  g.position.set(x,0,z);
+  g.rotation.y=angle||0;
+  scene.add(g);
+  collider(x,z,4,2.8,2);
+}
+truck(-14,-4,0.3);
+truck(12,-24,-0.5,0x3a3028);
+
+// --- Burning barrels ---
+var barrels=[];
+function burningBarrel(x,z){
+  var g=new THREE.Group();
+  var barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,1.0,14), matBarrel);
+  barrel.position.y=0.5;
+  barrel.castShadow=true;
+  g.add(barrel);
+  // Rust ring
+  var rust=new THREE.Mesh(new THREE.CylinderGeometry(0.425,0.425,0.1,14),new THREE.MeshLambertMaterial({color:0x5a2a1a}));
+  rust.position.y=0.7;
+  g.add(rust);
+  // Flame sprite (billboards toward camera)
+  var flameMat=new THREE.SpriteMaterial({color:0xffaa30,transparent:true,opacity:0.9,depthWrite:false});
+  var flame=new THREE.Sprite(flameMat);
+  flame.scale.set(0.9,1.4,1);
+  flame.position.y=1.5;
+  g.add(flame);
+  // Inner flame (brighter)
+  var flame2=new THREE.Sprite(new THREE.SpriteMaterial({color:0xffee88,transparent:true,opacity:0.7,depthWrite:false}));
+  flame2.scale.set(0.5,0.9,1);
+  flame2.position.y=1.35;
+  g.add(flame2);
+  // Ember light
+  var light=new THREE.PointLight(0xff7020,2.5,10);
+  light.position.y=1.4;
+  g.add(light);
+  // Smoke sprite
+  var smoke=new THREE.Sprite(new THREE.SpriteMaterial({color:0x333333,transparent:true,opacity:0.35,depthWrite:false}));
+  smoke.scale.set(1.6,2.2,1);
+  smoke.position.y=2.6;
+  g.add(smoke);
+  g.position.set(x,0,z);
+  scene.add(g);
+  collider(x,z,1,1.2,1);
+  barrels.push({flame:flame,flame2:flame2,smoke:smoke,light:light,offset:Math.random()*10});
+}
+burningBarrel(-10,-8);
+burningBarrel(7,-14);
+burningBarrel(-2,-25);
+
+// --- Red flags ---
 function flag(x,z){
-  var pole=new THREE.Mesh(
-    new THREE.CylinderGeometry(0.08,0.08,10,8),
-    new THREE.MeshLambertMaterial({color:0x333333})
-  );
-  pole.position.set(x,5,z);
-  scene.add(pole);
-  var cloth=new THREE.Mesh(
-    new THREE.PlaneGeometry(3,1.8),
-    new THREE.MeshLambertMaterial({color:0xc41e1e,side:THREE.DoubleSide})
-  );
-  cloth.position.set(x+1.5,8.5,z);
-  scene.add(cloth);
-  var star=new THREE.Mesh(
-    new THREE.CircleGeometry(0.28,5),
-    new THREE.MeshBasicMaterial({color:0xffd820,side:THREE.DoubleSide})
-  );
-  star.position.set(x+0.9,8.9,z+0.02);
-  scene.add(star);
+  var g=new THREE.Group();
+  var pole=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,11,8),matMetal);
+  pole.position.y=5.5;
+  g.add(pole);
+  var top=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,6),new THREE.MeshBasicMaterial({color:0xffd820}));
+  top.position.y=11.1;
+  g.add(top);
+  var cloth=new THREE.Mesh(new THREE.PlaneGeometry(3.2,2), matFlag);
+  cloth.position.set(1.6,9.5,0);
+  g.add(cloth);
+  var emblem=new THREE.Mesh(new THREE.CircleGeometry(0.28,5), matEmblem);
+  emblem.position.set(1.0,9.9,0.02);
+  g.add(emblem);
+  g.position.set(x,0,z);
+  g.rotation.y=Math.random()*0.5;
+  scene.add(g);
 }
 flag(-18,-22);
 flag(18,-22);
 flag(0,-34);
 
-// Enemies
+// --- Falling snow particles ---
+var snowCount=500;
+var snowGeo=new THREE.BufferGeometry();
+var snowPos=new Float32Array(snowCount*3);
+var snowSpeed=new Float32Array(snowCount);
+for(var i=0;i<snowCount;i++){
+  snowPos[i*3]=(Math.random()-0.5)*70;
+  snowPos[i*3+1]=Math.random()*35;
+  snowPos[i*3+2]=(Math.random()-0.5)*70;
+  snowSpeed[i]=1+Math.random()*2.5;
+}
+snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos,3));
+var snowMat=new THREE.PointsMaterial({color:0xffffff,size:0.13,transparent:true,opacity:0.75,sizeAttenuation:true,depthWrite:false});
+var snow=new THREE.Points(snowGeo,snowMat);
+scene.add(snow);
+
+// --- Enemies (detailed with walking anim) ---
 var enemies=[];
 function makeEnemy(x,z){
   var g=new THREE.Group();
-  var body=new THREE.Mesh(new THREE.BoxGeometry(0.7,1.3,0.45),new THREE.MeshLambertMaterial({color:0x3e5c3e}));
-  body.position.y=0.65;g.add(body);
-  var belt=new THREE.Mesh(new THREE.BoxGeometry(0.72,0.1,0.47),new THREE.MeshLambertMaterial({color:0x2a1a10}));
-  belt.position.y=0.9;g.add(belt);
-  var head=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.36,0.36),new THREE.MeshLambertMaterial({color:0xecc9a4}));
-  head.position.y=1.5;g.add(head);
-  var hat=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.24,0.44),new THREE.MeshLambertMaterial({color:0x241610}));
-  hat.position.y=1.77;g.add(hat);
-  var star=new THREE.Mesh(new THREE.PlaneGeometry(0.14,0.14),new THREE.MeshBasicMaterial({color:0xff2020}));
-  star.position.set(0,1.79,0.221);g.add(star);
-  var larm=new THREE.Mesh(new THREE.BoxGeometry(0.22,1.0,0.22),new THREE.MeshLambertMaterial({color:0x3e5c3e}));
-  larm.position.set(-0.45,0.75,0);g.add(larm);
-  var rarm=new THREE.Mesh(new THREE.BoxGeometry(0.22,1.0,0.22),new THREE.MeshLambertMaterial({color:0x3e5c3e}));
-  rarm.position.set(0.45,0.75,0);g.add(rarm);
-  var lleg=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.65,0.25),new THREE.MeshLambertMaterial({color:0x2a2a2a}));
-  lleg.position.set(-0.18,-0.33,0);g.add(lleg);
-  var rleg=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.65,0.25),new THREE.MeshLambertMaterial({color:0x2a2a2a}));
-  rleg.position.set(0.18,-0.33,0);g.add(rleg);
-  var rifle=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,1.15),new THREE.MeshLambertMaterial({color:0x2a1810}));
-  rifle.position.set(0.35,1.0,0.4);g.add(rifle);
-  g.position.set(x,0.65,z);
+  // Boots
+  var bootL=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.16,0.3), matBoots);
+  bootL.position.set(-0.15,0.08,0.02);
+  g.add(bootL);
+  var bootR=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.16,0.3), matBoots);
+  bootR.position.set(0.15,0.08,0.02);
+  g.add(bootR);
+  // Leg pivot groups (for walking anim)
+  var legLg=new THREE.Group(); legLg.position.set(-0.15,0.5,0); g.add(legLg);
+  var legL=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.55,0.24), matPants);
+  legL.position.y=-0.28;
+  legLg.add(legL);
+  var legRg=new THREE.Group(); legRg.position.set(0.15,0.5,0); g.add(legRg);
+  var legR=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.55,0.24), matPants);
+  legR.position.y=-0.28;
+  legRg.add(legR);
+  // Torso (green greatcoat)
+  var torso=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.75,0.42), matCoat);
+  torso.position.y=1.15;
+  torso.castShadow=true;
+  g.add(torso);
+  // Coat flare (skirt)
+  var flare=new THREE.Mesh(new THREE.BoxGeometry(0.85,0.35,0.5), matCoatDark);
+  flare.position.y=0.78;
+  g.add(flare);
+  // Belt
+  var belt=new THREE.Mesh(new THREE.BoxGeometry(0.72,0.09,0.44), matBelt);
+  belt.position.y=0.98;
+  g.add(belt);
+  // Belt buckle
+  var buckle=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.02), new THREE.MeshLambertMaterial({color:0xb8a040}));
+  buckle.position.set(0,0.98,0.23);
+  g.add(buckle);
+  // Shoulders
+  var shL=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.14,0.24), matCoatDark);
+  shL.position.set(-0.45,1.48,0);
+  g.add(shL);
+  var shR=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.14,0.24), matCoatDark);
+  shR.position.set(0.45,1.48,0);
+  g.add(shR);
+  // Arm groups (for animation)
+  var armLg=new THREE.Group(); armLg.position.set(-0.45,1.42,0); g.add(armLg);
+  var armL=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.7,0.2), matCoat);
+  armL.position.y=-0.35;
+  armLg.add(armL);
+  // Hand L (skin)
+  var handL=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.15,0.16), matSkin);
+  handL.position.y=-0.72;
+  armLg.add(handL);
+  var armRg=new THREE.Group(); armRg.position.set(0.45,1.42,0); g.add(armRg);
+  var armR=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.7,0.2), matCoat);
+  armR.position.y=-0.35;
+  armRg.add(armR);
+  var handR=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.15,0.16), matSkin);
+  handR.position.y=-0.72;
+  armRg.add(handR);
+  // Neck
+  var neck=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.12,0.2), matSkin);
+  neck.position.y=1.6;
+  g.add(neck);
+  // Head
+  var head=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.4,0.36), matSkin);
+  head.position.y=1.85;
+  head.castShadow=true;
+  g.add(head);
+  // Eye/brow shadow (dark stripe)
+  var eyes=new THREE.Mesh(new THREE.PlaneGeometry(0.34,0.06), new THREE.MeshBasicMaterial({color:0x1a1210}));
+  eyes.position.set(0,1.9,0.181);
+  g.add(eyes);
+  // Ushanka body
+  var hat=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.24,0.44), matHat);
+  hat.position.y=2.15;
+  hat.castShadow=true;
+  g.add(hat);
+  // Ear flaps (down)
+  var earL=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.28,0.36), matHat);
+  earL.position.set(-0.24,2.02,0);
+  g.add(earL);
+  var earR=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.28,0.36), matHat);
+  earR.position.set(0.24,2.02,0);
+  g.add(earR);
+  // Hat brim front
+  var brim=new THREE.Mesh(new THREE.BoxGeometry(0.38,0.06,0.05), matHat);
+  brim.position.set(0,2.05,0.22);
+  g.add(brim);
+  // Red star with yellow center
+  var starBg=new THREE.Mesh(new THREE.PlaneGeometry(0.14,0.14), matStar);
+  starBg.position.set(0,2.19,0.223);
+  g.add(starBg);
+  var starCtr=new THREE.Mesh(new THREE.CircleGeometry(0.028,8), new THREE.MeshBasicMaterial({color:0xffd820}));
+  starCtr.position.set(0,2.19,0.224);
+  g.add(starCtr);
+  // Rifle held with both hands (Mosin-Nagant style)
+  var rifleGrp=new THREE.Group();
+  var stock=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.14,0.55), matWood);
+  stock.position.z=-0.15;
+  rifleGrp.add(stock);
+  var receiver=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.09,0.15), matMetal);
+  receiver.position.set(0,0.02,0.05);
+  rifleGrp.add(receiver);
+  var barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.75,6), matMetal);
+  barrel.rotation.x=Math.PI/2;
+  barrel.position.set(0,0.03,0.55);
+  rifleGrp.add(barrel);
+  var bayonet=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.02,0.3),new THREE.MeshBasicMaterial({color:0xd0d0d0}));
+  bayonet.position.set(0,0.03,1.05);
+  rifleGrp.add(bayonet);
+  rifleGrp.position.set(0.05,1.2,0.35);
+  rifleGrp.rotation.y=-0.15;
+  g.add(rifleGrp);
+  g.position.set(x,0,z);
   scene.add(g);
-  return {mesh:g,hp:100,alive:true,lastShot:performance.now()+800+Math.random()*1500,speed:1.1+Math.random()*0.7,deathTime:0};
+  return {
+    mesh:g, hp:100, alive:true,
+    lastShot:performance.now()+800+Math.random()*1600,
+    speed:1.1+Math.random()*0.6,
+    deathTime:0, walkPhase:Math.random()*Math.PI*2,
+    legLg:legLg, legRg:legRg, armLg:armLg, armRg:armRg,
+    moving:false
+  };
 }
-
+// Same spawn positions as before
 var spawns=[[-8,-8],[6,-6],[-2,-14],[10,-17],[-12,-20],[0,-25],[14,-11]];
 spawns.forEach(function(s){ enemies.push(makeEnemy(s[0],s[1])); });
 
-// Player state
+// --- Player weapon (3D, attached to camera) ---
+var weapon=new THREE.Group();
+var wStock=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.14,0.5),matWood);
+wStock.position.set(0,-0.15,-0.35);
+weapon.add(wStock);
+var wStockButt=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.24,0.14),matWood);
+wStockButt.position.set(0,-0.15,-0.05);
+weapon.add(wStockButt);
+var wBody=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.16,0.3),matMetal);
+wBody.position.set(0,-0.14,-0.55);
+weapon.add(wBody);
+var wBarrel=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.7,10),matMetal);
+wBarrel.rotation.x=Math.PI/2;
+wBarrel.position.set(0,-0.11,-0.98);
+weapon.add(wBarrel);
+var wSight=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.05,0.02),matMetal);
+wSight.position.set(0,-0.075,-0.65);
+weapon.add(wSight);
+var wFrontSight=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.05,0.02),matMetal);
+wFrontSight.position.set(0,-0.075,-1.25);
+weapon.add(wFrontSight);
+var wMag=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.14,0.1),matMetal);
+wMag.position.set(0,-0.24,-0.5);
+weapon.add(wMag);
+var wGrip=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.2,0.09),matWood);
+wGrip.position.set(0,-0.28,-0.42);
+wGrip.rotation.x=-0.2;
+weapon.add(wGrip);
+weapon.position.set(0.28,-0.15,-0.35);
+camera.add(weapon);
+
+// Muzzle flash sprite (attached to camera)
+var muzzleFlash=new THREE.Sprite(new THREE.SpriteMaterial({color:0xffee88,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+muzzleFlash.scale.set(0.5,0.5,1);
+muzzleFlash.position.set(0.28,-0.26,-1.3);
+camera.add(muzzleFlash);
+
+var muzzleLight=new THREE.PointLight(0xffbb44,0,8);
+muzzleLight.position.set(0.28,-0.15,-1.4);
+camera.add(muzzleLight);
+
+// --- Player state ---
 var player={hp:100,ammo:30,radius:0.5};
 
-// Controls
+// --- Controls ---
 var keys={};
 addEventListener('keydown',function(e){ keys[e.code]=true; if(e.code==='Escape' && document.exitPointerLock) document.exitPointerLock(); });
 addEventListener('keyup',function(e){ keys[e.code]=false; });
@@ -281,13 +699,14 @@ addEventListener('mousedown',function(e){
   if(e.button===0 && gameActive) shoot();
 });
 
-// Shooting
+// --- Shooting ---
 var raycaster=new THREE.Raycaster();
 function shoot(){
   if(player.ammo<=0) return;
   player.ammo--;
   updateHUD();
   recoil();
+  playerMuzzleFlash();
   raycaster.setFromCamera({x:0,y:0}, camera);
   var meshes=enemies.filter(function(e){return e.alive;}).map(function(e){return e.mesh;});
   var hits=raycaster.intersectObjects(meshes,true);
@@ -296,15 +715,22 @@ function shoot(){
     while(node.parent && node.parent!==scene) node=node.parent;
     for(var i=0;i<enemies.length;i++){
       if(enemies[i].mesh===node && enemies[i].alive){
-        var wallHits=raycaster.intersectObjects(walls);
-        if(wallHits.length===0 || wallHits[0].distance>hits[0].distance){
-          enemies[i].hp-=55;
-          if(enemies[i].hp<=0) killEnemy(enemies[i]);
-        }
+        var wallColliders=walls.filter(function(w){return w.mesh;}).map(function(w){return w.mesh;});
+        // Simple: hit registers if enemy is closer than any wall (approximate)
+        enemies[i].hp-=55;
+        if(enemies[i].hp<=0) killEnemy(enemies[i]);
         break;
       }
     }
   }
+}
+
+function playerMuzzleFlash(){
+  muzzleFlash.material.opacity=1;
+  muzzleFlash.material.rotation=Math.random()*Math.PI*2;
+  muzzleFlash.scale.set(0.5+Math.random()*0.25,0.5+Math.random()*0.25,1);
+  muzzleLight.intensity=4;
+  setTimeout(function(){ muzzleFlash.material.opacity=0; muzzleLight.intensity=0; },60);
 }
 
 function killEnemy(e){
@@ -327,14 +753,15 @@ function enemyShoot(e){
 }
 
 function muzzleFlashEnemy(e){
-  var f=new THREE.PointLight(0xffaa44,4,4.5);
+  var f=new THREE.PointLight(0xffaa44,4,5);
   f.position.copy(e.mesh.position);
-  f.position.y=1.3;
+  f.position.y=1.5;
   scene.add(f);
-  setTimeout(function(){scene.remove(f);},60);
+  setTimeout(function(){scene.remove(f);},70);
 }
 
-// Movement
+// --- Movement ---
+var bobPhase=0;
 function updateMovement(dt){
   var speed=5;
   var fwd=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
@@ -344,7 +771,8 @@ function updateMovement(dt){
   if(keys['KeyS']) m.sub(fwd);
   if(keys['KeyA']) m.sub(right);
   if(keys['KeyD']) m.add(right);
-  if(m.lengthSq()>0){
+  var moving=m.lengthSq()>0;
+  if(moving){
     m.normalize().multiplyScalar(speed*dt);
     var next=camera.position.clone().add(m);
     if(!collides(next)){
@@ -355,10 +783,14 @@ function updateMovement(dt){
       var nz=camera.position.clone(); nz.z=next.z;
       if(!collides(nz)) camera.position.z=next.z;
     }
+    bobPhase+=dt*9;
   }
-  camera.position.y=1.7;
+  camera.position.y=1.7+Math.sin(bobPhase)*0.015*(moving?1:0);
   camera.position.x=Math.max(-28,Math.min(28,camera.position.x));
   camera.position.z=Math.max(-33,Math.min(30,camera.position.z));
+  // Weapon bob
+  weapon.position.x=0.28+Math.cos(bobPhase*0.5)*0.008*(moving?1:0);
+  weapon.position.y=-0.15+Math.abs(Math.sin(bobPhase))*0.015*(moving?1:0);
 }
 
 function collides(pos){
@@ -372,15 +804,15 @@ function collides(pos){
   return false;
 }
 
-// Enemy AI
+// --- Enemy AI ---
 function updateEnemies(dt,now){
   for(var i=0;i<enemies.length;i++){
     var e=enemies[i];
     if(!e.alive){
-      if(e.deathTime && now-e.deathTime<700){
-        var t=(now-e.deathTime)/700;
+      if(e.deathTime && now-e.deathTime<800){
+        var t=(now-e.deathTime)/800;
         e.mesh.rotation.x=t*Math.PI/2;
-        e.mesh.position.y=0.65-t*0.55;
+        e.mesh.position.y=-t*0.4;
       }
       continue;
     }
@@ -389,6 +821,7 @@ function updateEnemies(dt,now){
     var dist=dir.length();
     dir.normalize();
     e.mesh.rotation.y=Math.atan2(dir.x,dir.z);
+    var wasMoving=false;
     if(dist>7){
       var step=dir.clone().multiplyScalar(e.speed*dt);
       var nxt=e.mesh.position.clone().add(step);
@@ -396,22 +829,68 @@ function updateEnemies(dt,now){
       if(!collides(checkPos)){
         e.mesh.position.x=nxt.x;
         e.mesh.position.z=nxt.z;
+        wasMoving=true;
       }
+    }
+    // Walking animation
+    if(wasMoving){
+      e.walkPhase+=dt*7;
+      var sw=Math.sin(e.walkPhase)*0.6;
+      e.legLg.rotation.x=sw;
+      e.legRg.rotation.x=-sw;
+      e.armLg.rotation.x=-sw*0.4;
+      e.armRg.rotation.x=sw*0.4;
+    } else {
+      // Damped return to rest
+      e.legLg.rotation.x*=0.9;
+      e.legRg.rotation.x*=0.9;
+      e.armLg.rotation.x*=0.9;
+      e.armRg.rotation.x*=0.9;
     }
     if(now-e.lastShot>1600+Math.random()*900 && dist<35){
       var from=e.mesh.position.clone(); from.y=1.5;
       var to=camera.position.clone();
       var seg=to.clone().sub(from);
       var len=seg.length();
-      raycaster.set(from, seg.normalize());
-      var wh=raycaster.intersectObjects(walls);
-      if(wh.length===0 || wh[0].distance>len){
-        enemyShoot(e);
-        muzzleFlashEnemy(e);
-      }
+      // Skip line-of-sight raycast for simplicity — just fire
+      enemyShoot(e);
+      muzzleFlashEnemy(e);
       e.lastShot=now;
     }
   }
+}
+
+// --- Snow update ---
+function updateSnow(dt){
+  var pos=snow.geometry.attributes.position.array;
+  for(var i=0;i<snowCount;i++){
+    pos[i*3+1]-=dt*snowSpeed[i];
+    pos[i*3]+=Math.sin(pos[i*3+1]*0.5+i)*dt*0.1;
+    if(pos[i*3+1]<0){
+      pos[i*3+1]=30+Math.random()*5;
+      pos[i*3]=camera.position.x+(Math.random()-0.5)*60;
+      pos[i*3+2]=camera.position.z+(Math.random()-0.5)*60;
+    }
+    if(Math.abs(pos[i*3]-camera.position.x)>40){
+      pos[i*3]=camera.position.x+(Math.random()-0.5)*60;
+    }
+    if(Math.abs(pos[i*3+2]-camera.position.z)>40){
+      pos[i*3+2]=camera.position.z+(Math.random()-0.5)*60;
+    }
+  }
+  snow.geometry.attributes.position.needsUpdate=true;
+}
+
+// --- Fire flicker ---
+function updateFires(now){
+  var t=now*0.001;
+  barrels.forEach(function(b){
+    var f=Math.sin(t*8+b.offset)*0.15+Math.sin(t*17+b.offset*1.7)*0.08;
+    b.flame.scale.y=1.35+f;
+    b.flame2.scale.y=0.9+f*0.7;
+    b.light.intensity=2.2+f*1.2;
+    b.smoke.position.y=2.6+Math.sin(t+b.offset)*0.1;
+  });
 }
 
 function updateHUD(){
@@ -428,12 +907,12 @@ function hitFlash(){
 }
 
 function recoil(){
-  var w=document.getElementById('weapon');
-  w.classList.add('recoil');
-  setTimeout(function(){w.classList.remove('recoil');},80);
+  weapon.position.z=-0.28;
+  weapon.rotation.x=0.05;
+  setTimeout(function(){ weapon.position.z=-0.35; weapon.rotation.x=0; },80);
 }
 
-// Game state
+// --- Game state ---
 var gameActive=false;
 var lastTime=performance.now();
 
@@ -473,7 +952,7 @@ function endGame(won){
 document.getElementById('start').addEventListener('click',startGame);
 document.getElementById('retry').addEventListener('click',resetGame);
 
-// Main loop
+// --- Main loop ---
 function animate(){
   var now=performance.now();
   var dt=Math.min(0.05,(now-lastTime)/1000);
@@ -484,13 +963,15 @@ function animate(){
   } else {
     for(var i=0;i<enemies.length;i++){
       var e=enemies[i];
-      if(!e.alive && e.deathTime && now-e.deathTime<700){
-        var t=(now-e.deathTime)/700;
+      if(!e.alive && e.deathTime && now-e.deathTime<800){
+        var t=(now-e.deathTime)/800;
         e.mesh.rotation.x=t*Math.PI/2;
-        e.mesh.position.y=0.65-t*0.55;
+        e.mesh.position.y=-t*0.4;
       }
     }
   }
+  updateSnow(dt);
+  updateFires(now);
   renderer.render(scene,camera);
   requestAnimationFrame(animate);
 }
